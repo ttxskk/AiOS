@@ -1,0 +1,34 @@
+/* Shangchen */
+.logo img {
+    width: 210px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #f00;
+}
+
+.logo img:hover {
+    width: 210px;
+    border-radius: 50%;
+    box-shadow: 0 0 15px #f00;
+}
+
+.container.is-max-desktop.head {
+    max-width: 95%;
+}
+
+.button.is-rounded:hover {
+    transform: scale(1.02);
+    background-color: #fb5a42;
+}
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {
+}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {
+}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+
+}
