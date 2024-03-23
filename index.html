@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="AiOS: All-in-One-Stage 3D Wholebody Mesh Recovery">
+  <meta name="description" content="AiOS: All-in-One-Stage Expressive Human Pose and Shape Estimation">
   <meta name="keywords" content="AiOS, Expressive Human Pose and Shape Estimation, Motion Capture, Animation">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AiOS</title>
@@ -52,16 +52,16 @@
               <a href="https://github.com/ttxskk" target="_blank">Qingping Sun</a><sup>*, 1, 2</sup>,&nbsp;
             </span>
             <span class="author-block">
-              <a href="https://github.com/WYJSJTU" target="_blank">Yanjun Wang</a><sup>*, 2</sup>,&nbsp;
+              <a href="https://github.com/WYJSJTU" target="_blank">Yanjun Wang</a><sup>*, 1</sup>,&nbsp;
             </span>
             <span class="author-block">
               <a href="https://ailingzeng.site/" target="_blank">Ailing Zeng</a><sup>3</sup>,&nbsp;
             </span>
             <span class="author-block">
-              <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ" target="_blank">Wanqi Yin</a><sup>2</sup>,&nbsp;
+              <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ" target="_blank">Wanqi Yin</a><sup>1</sup>,&nbsp;
             </span>
             <span class="author-block">
-              <a href="https://www.linkedin.com/in/chen-wei-weic0006/" target="_blank">Chen Wei</a><sup>2</sup>,&nbsp;
+              <a href="https://www.linkedin.com/in/chen-wei-weic0006/" target="_blank">Chen Wei</a><sup>1</sup>,&nbsp;
             </span>
 
             <span class="author-block">
@@ -69,26 +69,26 @@
             </span>
             <br>
             <span class="author-block">
-              <a href="https://haiyi-mei.com" target="_blank">Haiyi Mei</a><sup>2</sup>,&nbsp;
+              <a href="https://haiyi-mei.com" target="_blank">Haiyi Mei</a><sup>1</sup>,&nbsp;
             </span>
             <span class="author-block">
-              <a href="https://ttxskk.github.io/AiOS/" target="_blank">Chi Sing Leung</a><sup>1</sup>,&nbsp;
+              <a href="https://ttxskk.github.io/AiOS/" target="_blank">Chi Sing Leung</a><sup>2</sup>,&nbsp;
             
             <span class="author-block">
                 <a href="https://liuziwei7.github.io/" target="_blank">Ziwei Liu</a><sup>4</sup>,&nbsp;
               </span>
             </span>
             <span class="author-block">
-              <a href="https://yanglei.me/" target="_blank">Lei Yang</a><sup>2, 5</sup>,&nbsp;
+              <a href="https://yanglei.me/" target="_blank">Lei Yang</a><sup>1, 5</sup>,&nbsp;
             </span>
             <span class="author-block">
-              <a href="https://caizhongang.github.io/" target="_blank">Zhongang Cai</a><sup>✉, 2, 4, 5</sup>,&nbsp;
+              <a href="https://caizhongang.github.io/" target="_blank">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
             </span>
           </div>
 
           <div class="is-size-5 publication-authors">
-            <span class="author-block"><sup>1</sup>City University of Hong Kong</span>,
-            <span class="author-block"><sup>2</sup>SenseTime Research</span>,
+            <span class="author-block"><sup>1</sup>SenseTime Research</span>,
+            <span class="author-block"><sup>2</sup>City University of Hong Kong</span>,
             <br>
             <span class="author-block"><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
             <br>
@@ -102,10 +102,6 @@
             <span class="author-block"><sup>✉</sup>corresponding author</span>
           </div>
 
-          <!-- <br>
-          <div class="is-size-4 publication-authors">
-            <span class="author-block">NeurIPS 2023 (Dataset and Benchmark Track)</span>
-          </div> -->
 
           <br>
           <div class="column has-text-centered">
@@ -124,7 +120,7 @@
 
               <!-- PDF Link. -->
               <span class="link-block">
-                <a href="https://ttxskk.github.io/AiOS/" target="_blank"
+                <a href="assets/aios_cvpr24.pdf" target="_blank"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
                       <i class="fas fa-file-pdf"></i>
@@ -174,12 +170,6 @@
 <!-- Visualizations -->
 <section class="hero is-light is-small">
   <div class="hero-body">
-    <div class="columns is-centered has-text-centered">
-    <!-- <div class="column is-full">
-        <h2 class="title is-2">Visualizations</h2>
-    </div> -->
-    </div>
-
     <div class="container">
       <div id="results-carousel" class="carousel results-carousel">
 
@@ -341,7 +331,8 @@
         <h2 class="title is-2">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            3D whole-body mesh recovery involves the human body, hand, and expression estimation.
+            Expressive human pose and shape estimation (a.k.a. 3D whole-body mesh recovery) 
+            involves the human body, hand, and expression estimation.
             Most existing methods have tackled this task in a two-stage manner, 
             first detecting the human body part with an off-the-shelf detection model and 
             inferring the different human body parts individually. 
@@ -359,7 +350,7 @@
             Then, we introduce a joint-related token to probe the human joint in the image and encoder a fine-grained local feature, 
             which is especially important in occluded scenarios. 
             This straightforward but effective model outperforms previous state-of-the-art methods by a 9% reduction in NMVE on AGORA, 
-            a 30% reduction in PVE on EHF, a 10% reduction in PVE on ARCTIC, and a 3% reduction in PVE on EgoBody. The code will be released <a href="url">https://github.com/ttxskk/AiOS.git</a>.
+            a 30% reduction in PVE on EHF, a 10% reduction in PVE on ARCTIC, and a 3% reduction in PVE on EgoBody.
           </p>
         </div>
       </div>
@@ -398,6 +389,20 @@
         <img style="width: 80%;" src="./assets/teaser.png">
       </div>
 
+      <div class="columns is-centered has-text-centered">   
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+            a) Top-down, multi-stage methods, typically use detectors to detect humans, then use 
+            different networks to regress body parts on cropped images. 
+            (b) Top-down, one-stage methods, use only one network for regression but still 
+            require detectors and rely on the cropped image.
+            (c) Our all-in-one-stage pipeline, end-to-end human detection, and regression on full frame. 
+            </p>
+          </div>
+        </div>
+      </div>
+
   </div>
 </section>
 
@@ -414,6 +419,18 @@
         <img style="width: 80%;" src="./assets/method.png">
       </div>
 
+      <div class="columns is-centered has-text-centered">   
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              AiOS performs human localization and SMPL-X estimation in a progressive manner. 
+              It is composed of (1) the body localization stage that predicts coarse human location; 
+              (2) the Body refinement stage that refines body features and produces face and
+              hand locations; (3) the Whole-body Refinement stage that refines whole-body features and regress SMPL-X parameters.
+            </p>
+          </div>
+        </div>
+      </div>
   </div>
 </section>
 
@@ -431,8 +448,21 @@
             <h3 class="title is-3"><a href="https://agora-evaluation.is.tuebingen.mpg.de/">AGORA SMPL-X</a></h3>
         </div>
       </div>
+
       <div class="column is-centered has-text-centered">
           <img style="width: 80%;" src="./assets/AGORA.png">
+      </div>
+
+      <div class="columns is-centered has-text-centered">   
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 1. AGORA SMPL-X test set. † denotes the methods finetuned on the AGORA training set. ∗ denotes the methods trained on the
+              AGORA training set only. ⋄ denotes the methods that use the AiOS’s bounding box to crop the image. The best results are colored with red,
+              and the second-best results are colored with blue for the upper and lower parts of the table, respectively.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- BEDLAM SMPLX -->
@@ -444,7 +474,15 @@
       <div class="column is-centered has-text-centered">
           <img style="width: 80%;" src="./assets/BEDLAM_SMPLX.png">
       </div>
-
+      <div class="columns is-centered has-text-centered">   
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 2. BEDLAM test set. The best results are in bold. † denotes methods that include the AGROA training set
+            </p>
+          </div>
+        </div>
+      </div>
       <!-- AGORA SMPL -->
       <div class="columns is-centered has-text-centered">
           <div class="column is-full">
@@ -455,6 +493,16 @@
           <img style="width: 60%;" src="./assets/AGORA_SMPL.png">
       </div>
 
+      <div class="columns is-centered has-text-centered">   
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 3. AGORA SMPL test set. † indicates that this method is fine-tuned on the AGORA training set. 
+              AiOS_0.5 and AiOS_0.3, representing the use of a 0.5 score threshold and a 0.3 score threshold to filter the data, respectively.
+            </p>
+          </div>
+        </div>
+      </div>
 
 
       
@@ -471,7 +519,9 @@
         <div class="content has-text-justified">
           <p>
             This project is partially supported by the Hong Kong Innovation and Technology Commission (InnoHK Project CIMDA).
-            We extend our sincere gratitude to the Hong Kong Innovation and Technology Commission for their generous support of this project.
+            It is also supported by the Ministry of Education, Singapore, under its MOE AcRF Tier 2 (MOET2EP20221- 0012), NTU NAP, 
+            and under the RIE2020 Industry Alignment Fund - Industry Collaboration Projects (IAF-ICP) Funding Initiative, 
+            as well as cash and in-kind contribution from the industry partner(s).
           </p>
         </div>
       </div>
@@ -480,20 +530,23 @@
 </section>
 
 
-<!-- <section class="section">
-  <div class="container is-max-desktop">
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-full">
-            <h2 class="title is-2">Foundation Models</h2>
-        </div>
-      </div>
 
-        <div class="column is-centered has-text-centered">
-          <img style="width: 80%;" src="./assets/teaser_complete.png">
-        </div>
-      </div>
-  </div>
-</section> -->
+
+<!-- 
+<div class="columns"> 
+
+  <div class="column"> 
+    <div class="twentytwenty-container" id="container1"> 
+      <img class="rounded float-left" src="assets/ROMP/1_ours.jpg"> 
+      <img class="rounded float-left" src="assets/ROMP/1_ours.jpg"> 
+    </div> 
+
+  </div> 
+
+</div>  -->
+
+
+
 
 
 <!--<section class="section" id="BibTeX">-->

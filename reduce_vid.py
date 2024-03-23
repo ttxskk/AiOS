@@ -23,8 +23,8 @@ def resize_video(input_path, output_path, target_width, target_height):
 # Example usage:
 input_videos_folder = 'assets/videos/'
 output_videos_folder = 'assets/videos_reduced/'
-target_width = 854
-target_height = 480
+target_width = 854/4
+target_height = 480/4
 
 if not os.path.exists(output_videos_folder):
     os.makedirs(output_videos_folder)
