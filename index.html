@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="description" content="AiOS: All-in-One-Stage Expressive Human Pose and Shape Estimation">
@@ -8,7 +9,12 @@
   <title>AiOS</title>
 
   <style>
-  .hr {width: 100%; height: 1px; margin: 48px 0; background-color: #d6dbdf;}
+    .hr {
+      width: 100%;
+      height: 1px;
+      margin: 48px 0;
+      background-color: #d6dbdf;
+    }
   </style>
 
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
@@ -22,344 +28,367 @@
   <!-- custom css file  -->
   <link rel="stylesheet" href="./assets/css/style.css">
   <link rel="stylesheet" href="./assets/css/twentytwenty.css">
+  <link rel="stylesheet" href="./assets/css/twentytwenty_aios.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
   <!-- <link rel="icon" href="./assets/pac_man.svg"> -->
+
+  <script defer src="./assets/js/fontawesome.all.min.js"></script>
+  <script src="./assets/js/bulma-carousel.min.js"></script>
+  <script src="./assets/js/bulma-slider.min.js"></script>
+  <script src="./assets/js/index.js"></script>
+  <script src="./assets/js/jquery.event.move.js"></script>
+  <script src="./assets/js/jquery.twentytwenty.js"></script>
+  <script src="./assets/js/jquery.twentytwenty_aios.js"></script>
+  <script>
+    $(function () {
+      $(".twentytwenty-container").twentytwenty();
+      // $(".twentytwenty-container", "#results-carousel").twentytwenty({default_offset_pct: 0.5, ratio: 0.5});
+    });
+
+    
+  </script>
+
 </head>
+
 <body>
 
-<section class="hero">
-  <div class="hero-body">
-    <div class="container is-max-desktop head">
-      <div class="columns is-centered">
-        <div class="column has-text-centered head">
-<!--          <div class="logo">-->
-<!--          <a href="index.html">-->
-<!--            &lt;!&ndash; <img src="./assets/images/propainter_logo1" width=200px alt="Logo"> &ndash;&gt;-->
-<!--            <img src="./assets/images/propainter_logo1" onmouseover="this.src='./assets/images/propainter_logo2';" onmouseout="this.src='./assets/images/propainter_logo1';">-->
-<!--          </a>-->
-<!--          </div>-->
-          <br>
-
-          <h1 class="title is-2 publication-title">
-            AiOS: All-in-One-Stage 3D Wholebody Mesh Recovery
-          </h1>
-
-          <div class="is-size-5 publication-authors">
-
-
-            <span class="author-block">
-              <a href="https://github.com/ttxskk" target="_blank">Qingping Sun</a><sup>*, 1, 2</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://github.com/WYJSJTU" target="_blank">Yanjun Wang</a><sup>*, 1</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://ailingzeng.site/" target="_blank">Ailing Zeng</a><sup>3</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ" target="_blank">Wanqi Yin</a><sup>1</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://www.linkedin.com/in/chen-wei-weic0006/" target="_blank">Chen Wei</a><sup>1</sup>,&nbsp;
-            </span>
-
-            <span class="author-block">
-              <a href="https://wenjiawang0312.github.io/" target="_blank">Wenjia Wang</a><sup>5</sup>,&nbsp;
-            </span>
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop head">
+        <div class="columns is-centered">
+          <div class="column has-text-centered head">
+            <!--          <div class="logo">-->
+            <!--          <a href="index.html">-->
+            <!--            &lt;!&ndash; <img src="./assets/images/propainter_logo1" width=200px alt="Logo"> &ndash;&gt;-->
+            <!--            <img src="./assets/images/propainter_logo1" onmouseover="this.src='./assets/images/propainter_logo2';" onmouseout="this.src='./assets/images/propainter_logo1';">-->
+            <!--          </a>-->
+            <!--          </div>-->
             <br>
-            <span class="author-block">
-              <a href="https://haiyi-mei.com" target="_blank">Haiyi Mei</a><sup>1</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://ttxskk.github.io/AiOS/" target="_blank">Chi Sing Leung</a><sup>2</sup>,&nbsp;
-            
-            <span class="author-block">
-                <a href="https://liuziwei7.github.io/" target="_blank">Ziwei Liu</a><sup>4</sup>,&nbsp;
+
+            <h1 class="title is-2 publication-title">
+              AiOS: All-in-One-Stage 3D Wholebody Mesh Recovery
+            </h1>
+
+            <div class="is-size-5 publication-authors">
+
+
+              <span class="author-block">
+                <a href="https://github.com/ttxskk" target="_blank">Qingping Sun</a><sup>*, 1, 2</sup>,&nbsp;
               </span>
-            </span>
-            <span class="author-block">
-              <a href="https://yanglei.me/" target="_blank">Lei Yang</a><sup>1, 5</sup>,&nbsp;
-            </span>
-            <span class="author-block">
-              <a href="https://caizhongang.github.io/" target="_blank">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
-            </span>
-          </div>
+              <span class="author-block">
+                <a href="https://github.com/WYJSJTU" target="_blank">Yanjun Wang</a><sup>*, 1</sup>,&nbsp;
+              </span>
+              <span class="author-block">
+                <a href="https://ailingzeng.site/" target="_blank">Ailing Zeng</a><sup>3</sup>,&nbsp;
+              </span>
+              <span class="author-block">
+                <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ"
+                  target="_blank">Wanqi Yin</a><sup>1</sup>,&nbsp;
+              </span>
+              <span class="author-block">
+                <a href="https://www.linkedin.com/in/chen-wei-weic0006/" target="_blank">Chen Wei</a><sup>1</sup>,&nbsp;
+              </span>
 
-          <div class="is-size-5 publication-authors">
-            <span class="author-block"><sup>1</sup>SenseTime Research</span>,
-            <span class="author-block"><sup>2</sup>City University of Hong Kong</span>,
+              <span class="author-block">
+                <a href="https://wenjiawang0312.github.io/" target="_blank">Wenjia Wang</a><sup>5</sup>,&nbsp;
+              </span>
+              <br>
+              <span class="author-block">
+                <a href="https://haiyi-mei.com" target="_blank">Haiyi Mei</a><sup>1</sup>,&nbsp;
+              </span>
+              <span class="author-block">
+                <a href="https://ttxskk.github.io/AiOS/" target="_blank">Chi Sing Leung</a><sup>2</sup>,&nbsp;
+
+                <span class="author-block">
+                  <a href="https://liuziwei7.github.io/" target="_blank">Ziwei Liu</a><sup>4</sup>,&nbsp;
+                </span>
+              </span>
+              <span class="author-block">
+                <a href="https://yanglei.me/" target="_blank">Lei Yang</a><sup>1, 5</sup>,&nbsp;
+              </span>
+              <span class="author-block">
+                <a href="https://caizhongang.github.io/" target="_blank">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
+              </span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><sup>1</sup>SenseTime Research</span>,
+              <span class="author-block"><sup>2</sup>City University of Hong Kong</span>,
+              <br>
+              <span class="author-block"><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
+              <br>
+              <span class="author-block"><sup>4</sup>S-Lab, Nanyang Technological University</span>,
+              <span class="author-block"><sup>5</sup>Shanghai AI Laboratory</span>
+
+            </div>
+
+            <div class="is-size-6 publication-authors">
+              <span class="author-block"><sup>*</sup>equal contributions</span>,
+              <span class="author-block"><sup>✉</sup>corresponding author</span>
+            </div>
+
+
             <br>
-            <span class="author-block"><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
-            <br>
-            <span class="author-block"><sup>4</sup>S-Lab, Nanyang Technological University</span>,
-            <span class="author-block"><sup>5</sup>Shanghai AI Laboratory</span>
-            
-          </div>
+            <div class="column has-text-centered">
+              <div class="publication-links">
 
-          <div class="is-size-6 publication-authors">
-            <span class="author-block"><sup>*</sup>equal contributions</span>,
-            <span class="author-block"><sup>✉</sup>corresponding author</span>
-          </div>
-
-
-          <br>
-          <div class="column has-text-centered">
-            <div class="publication-links">
-
-              <!-- arXiv Link. -->
-              <span class="link-block">
-                <a href="https://ttxskk.github.io/AiOS/" target="_blank"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
+                <!-- arXiv Link. -->
+                <span class="link-block">
+                  <a href="https://ttxskk.github.io/AiOS/" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
                       <i class="ai ai-arxiv"></i>
-                  </span>
-                  <span>arXiv</span>
-                </a>
-              </span>
-
-              <!-- PDF Link. -->
-              <span class="link-block">
-                <a href="assets/aios_cvpr24.pdf" target="_blank"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fas fa-file-pdf"></i>
-                  </span>
-                  <span>Paper</span>
-                </a>
-              </span>
-
-              <!-- Video Link. -->
-              <span class="link-block">
-                <a href="https://ttxskk.github.io/AiOS/" target="_blank"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-youtube"></i>
-                  </span>
-                  <span>Video</span>
-                </a>
-              </span>
-
-              <!-- Code Link. -->
-              <span class="link-block">
-                <a href="https://github.com/ttxskk/AiOS" target="_blank"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-github"></i>
-                  </span>
-                  <span>Code</span>
+                    </span>
+                    <span>arXiv</span>
                   </a>
-              </span>
+                </span>
 
-              <!-- Demo Link. -->
-              <span class="link-block">
-                <a href="" target="_blank"
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span>🤗&nbsp;Demo(Coming Soon)</span>
-                </a>
-              </span>
+                <!-- PDF Link. -->
+                <span class="link-block">
+                  <a href="assets/aios_cvpr24.pdf" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Paper</span>
+                  </a>
+                </span>
 
+                <!-- Video Link. -->
+                <span class="link-block">
+                  <a href="https://ttxskk.github.io/AiOS/" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                    </span>
+                    <span>Video</span>
+                  </a>
+                </span>
+
+                <!-- Code Link. -->
+                <span class="link-block">
+                  <a href="https://github.com/ttxskk/AiOS" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+
+                <!-- Demo Link. -->
+                <span class="link-block">
+                  <a href="" target="_blank" class="external-link button is-normal is-rounded is-dark">
+                    <span>🤗&nbsp;Demo(Coming Soon)</span>
+                  </a>
+                </span>
+
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Visualizations -->
-<section class="hero is-light is-small">
-  <div class="hero-body">
-    <div class="container">
-      <div id="results-carousel" class="carousel results-carousel">
-
+  <!-- Visualizations -->
+  <section class="hero is-light is-small">
+    <div class="hero-body">
+      <div class="container">
+        <div id="results-carousel" class="carousel results-carousel">
 
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/03.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/03_overlay.mp4" type="video/mp4">
-              </video>
+
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/03.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/03_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/05.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/05_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/05.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/05_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/06.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/06_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/06.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/06_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/07.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/07_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/07.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/07_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/08.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/08_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/08.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/08_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/09.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/09_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/09.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/09_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/04.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/04_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/04.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/04_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/01.mp4" type="video/mp4">
-              </video>
-            </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/01_overlay.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/01.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/01_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="item">
-          <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
-            <div class="desc">SMPL-X Overlay</div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/02.mp4" type="video/mp4">
-              </video>
+          <div class="item">
+            <div class="twentytwenty-container" data-orientation="horizontal" ratio="0.5556">
+              <div class="desc">SMPL-X Overlay</div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/02.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="video">
+                <video muted autoplay="autoplay" loop="loop" width="100%">
+                  <source src="./assets/videos_reduced/02_overlay.mp4" type="video/mp4">
+                </video>
+              </div>
             </div>
-            <div class="video">
-              <video muted autoplay="autoplay" loop="loop" width="100%">
-                <source src="./assets/videos_reduced/02_overlay.mp4" type="video/mp4">
-              </video>
-            </div>
+          </div>
+        
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Abstract. -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-2">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Expressive human pose and shape estimation (a.k.a. 3D whole-body mesh recovery)
+              involves the human body, hand, and expression estimation.
+              Most existing methods have tackled this task in a two-stage manner,
+              first detecting the human body part with an off-the-shelf detection model and
+              inferring the different human body parts individually.
+              Despite the impressive results achieved, these methods suffer from
+              1) loss of valuable contextual information via cropping,
+              2) introducing distractions, and
+              3) lacking inter-association among different persons and body parts,
+              inevitably causing performance degradation, especially for crowded scenes.
+              To address these issues, we introduce a novel all-in-one-stage framework, AiOS,
+              for multiple expressive human pose and shape recovery without an additional human detection step.
+              Specifically, our method is built upon DETR, which treat multi-person whole-body mesh recovery task as a
+              progressive set prediction problem with various sequential detection.
+              We devise the decoder tokens and extend them to our task.
+              Specifically, we first employ a human token to probe a human location in the image and encode global
+              features for each instance,
+              which provides a coarse location for the later transformer block.
+              Then, we introduce a joint-related token to probe the human joint in the image and encoder a fine-grained
+              local feature,
+              which is especially important in occluded scenarios.
+              This straightforward but effective model outperforms previous state-of-the-art methods by a 9% reduction
+              in NMVE on AGORA,
+              a 30% reduction in PVE on EHF, a 10% reduction in PVE on ARCTIC, and a 3% reduction in PVE on EgoBody.
+            </p>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Abstract. -->
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-2">Abstract</h2>
-        <div class="content has-text-justified">
-          <p>
-            Expressive human pose and shape estimation (a.k.a. 3D whole-body mesh recovery) 
-            involves the human body, hand, and expression estimation.
-            Most existing methods have tackled this task in a two-stage manner, 
-            first detecting the human body part with an off-the-shelf detection model and 
-            inferring the different human body parts individually. 
-            Despite the impressive results achieved, these methods suffer from 
-            1) loss of valuable contextual information via cropping, 
-            2) introducing distractions, and 
-            3) lacking inter-association among different persons and body parts, 
-            inevitably causing performance degradation, especially for crowded scenes. 
-            To address these issues, we introduce a novel all-in-one-stage framework, AiOS, 
-            for multiple expressive human pose and shape recovery without an additional human detection step. 
-            Specifically, our method is built upon DETR, which treat multi-person whole-body mesh recovery task as a progressive set prediction problem with various sequential detection. 
-            We devise the decoder tokens and extend them to our task. 
-            Specifically, we first employ a human token to probe a human location in the image and encode global features for each instance, 
-            which provides a coarse location for the later transformer block. 
-            Then, we introduce a joint-related token to probe the human joint in the image and encoder a fine-grained local feature, 
-            which is especially important in occluded scenarios. 
-            This straightforward but effective model outperforms previous state-of-the-art methods by a 9% reduction in NMVE on AGORA, 
-            a 30% reduction in PVE on EHF, a 10% reduction in PVE on ARCTIC, and a 3% reduction in PVE on EgoBody.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Video -->
-<!-- <section class="section">
+  <!-- Video -->
+  <!-- <section class="section">
   <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
         <div class="column">
@@ -376,223 +405,537 @@
 
 
 
-<!-- comparisons on paradigms -->
-<section class="section">
-  <div class="container is-max-desktop">
+  <!-- comparisons on paradigms -->
+  <section class="section">
+    <div class="container is-max-desktop">
       <div class="columns is-centered has-text-centered">
         <div class="column is-full">
-            <h2 class="title is-2">Comparisons on Paradigms</h2>
+          <h3 class="title is-3">Comparisons on Paradigms</h3>
         </div>
       </div>
 
       <div class="column is-centered has-text-centered">
-        <img style="width: 80%;" src="./assets/teaser.png">
+        <img style="width: 100%;" src="./assets/teaser.png">
       </div>
 
-      <div class="columns is-centered has-text-centered">   
-        <div class="column is-four-fifths">
+      <div class="columns is-centered has-text-centered">
+        <div class="column">
           <div class="content has-text-justified">
             <p>
-            a) Top-down, multi-stage methods, typically use detectors to detect humans, then use 
-            different networks to regress body parts on cropped images. 
-            (b) Top-down, one-stage methods, use only one network for regression but still 
-            require detectors and rely on the cropped image.
-            (c) Our all-in-one-stage pipeline, end-to-end human detection, and regression on full frame. 
+              a) Top-down, multi-stage methods, typically use detectors to detect humans, then use
+              different networks to regress body parts on cropped images.
+              (b) Top-down, one-stage methods, use only one network for regression but still
+              require detectors and rely on the cropped image.
+              (c) Our all-in-one-stage pipeline, end-to-end human detection, and regression on full frame.
             </p>
           </div>
         </div>
       </div>
 
-  </div>
-</section>
+    </div>
+  </section>
 
-<!-- method overview -->
-<section class="section">
-  <div class="container is-max-desktop">
+  <!-- method overview -->
+  <section class="section">
+    <div class="container is-max-desktop">
       <div class="columns is-centered has-text-centered">
         <div class="column is-full">
-            <h2 class="title is-2">Method Overview</h2>
+          <h3 class="title is-3">Method Overview</h3>
         </div>
       </div>
 
       <div class="column is-centered has-text-centered">
-        <img style="width: 80%;" src="./assets/method.png">
+        <img style="width: 100%;" src="./assets/method.png">
       </div>
 
-      <div class="columns is-centered has-text-centered">   
-        <div class="column is-four-fifths">
+      <div class="columns is-centered has-text-centered">
+        <div class="column">
           <div class="content has-text-justified">
             <p>
-              AiOS performs human localization and SMPL-X estimation in a progressive manner. 
-              It is composed of (1) the body localization stage that predicts coarse human location; 
+              AiOS performs human localization and SMPL-X estimation in a progressive manner.
+              It is composed of (1) the body localization stage that predicts coarse human location;
               (2) the Body refinement stage that refines body features and produces face and
-              hand locations; (3) the Whole-body Refinement stage that refines whole-body features and regress SMPL-X parameters.
+              hand locations; (3) the Whole-body Refinement stage that refines whole-body features and regress SMPL-X
+              parameters.
             </p>
           </div>
-        </div>
-      </div>
-  </div>
-</section>
-
-<!-- Quantitative results -->
-<section class="section">
-  <div class="container is-max-desktop">
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-full">
-            <h2 class="title is-2">Quantitative Results</h2>
-        </div>
-      </div>
-      <!-- AGORA SMPLX -->
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-full">
-            <h3 class="title is-3"><a href="https://agora-evaluation.is.tuebingen.mpg.de/">AGORA SMPL-X</a></h3>
-        </div>
-      </div>
-
-      <div class="column is-centered has-text-centered">
-          <img style="width: 80%;" src="./assets/AGORA.png">
-      </div>
-
-      <div class="columns is-centered has-text-centered">   
-        <div class="column is-four-fifths">
-          <div class="content has-text-justified">
-            <p>
-              Table 1. AGORA SMPL-X test set. † denotes the methods finetuned on the AGORA training set. ∗ denotes the methods trained on the
-              AGORA training set only. ⋄ denotes the methods that use the AiOS’s bounding box to crop the image. The best results are colored with red,
-              and the second-best results are colored with blue for the upper and lower parts of the table, respectively.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- BEDLAM SMPLX -->
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-full">
-            <h3 class="title is-3"><a href="https://bedlam-leaderboard.is.tuebingen.mpg.de/leaderboard">BEDLAM SMPL-X</a></h3>
-        </div>
-      </div>
-      <div class="column is-centered has-text-centered">
-          <img style="width: 80%;" src="./assets/BEDLAM_SMPLX.png">
-      </div>
-      <div class="columns is-centered has-text-centered">   
-        <div class="column is-four-fifths">
-          <div class="content has-text-justified">
-            <p>
-              Table 2. BEDLAM test set. The best results are in bold. † denotes methods that include the AGROA training set
-            </p>
-          </div>
-        </div>
-      </div>
-      <!-- AGORA SMPL -->
-      <div class="columns is-centered has-text-centered">
-          <div class="column is-full">
-              <h3 class="title is-3"><a href="https://agora-evaluation.is.tuebingen.mpg.de/">AGORA SMPL</a></h3>
-          </div>
-      </div>
-      <div class="column is-centered has-text-centered">
-          <img style="width: 60%;" src="./assets/AGORA_SMPL.png">
-      </div>
-
-      <div class="columns is-centered has-text-centered">   
-        <div class="column is-four-fifths">
-          <div class="content has-text-justified">
-            <p>
-              Table 3. AGORA SMPL test set. † indicates that this method is fine-tuned on the AGORA training set. 
-              AiOS_0.5 and AiOS_0.3, representing the use of a 0.5 score threshold and a 0.3 score threshold to filter the data, respectively.
-            </p>
-          </div>
-        </div>
-      </div>
-
-
-      
-  </div>
-</section>
-
-
-<section class="section">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-2">Acknowledge</h2>
-    
-        <div class="content has-text-justified">
-          <p>
-            This project is partially supported by the Hong Kong Innovation and Technology Commission (InnoHK Project CIMDA).
-            It is also supported by the Ministry of Education, Singapore, under its MOE AcRF Tier 2 (MOET2EP20221- 0012), NTU NAP, 
-            and under the RIE2020 Industry Alignment Fund - Industry Collaboration Projects (IAF-ICP) Funding Initiative, 
-            as well as cash and in-kind contribution from the industry partner(s).
-          </p>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
 
 
-
-<!-- 
-<div class="columns"> 
-
-  <div class="column"> 
-    <div class="twentytwenty-container" id="container1"> 
-      <img class="rounded float-left" src="assets/ROMP/1_ours.jpg"> 
-      <img class="rounded float-left" src="assets/ROMP/1_ours.jpg"> 
-    </div> 
-
-  </div> 
-
-</div>  -->
+  <!-- Quantitative results -->
+  <!-- <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h2 class="title is-2">Quantitative Results</h2>
+        </div>
+      </div>
 
 
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h3 class="title is-3"><a href="https://agora-evaluation.is.tuebingen.mpg.de/">AGORA SMPL-X</a></h3>
+        </div>
+      </div>
+      <div class="column is-centered has-text-centered">
+        <img style="width: 80%;" src="./assets/AGORA.png">
+      </div>
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 1. AGORA SMPL-X test set. † denotes the methods finetuned on the AGORA training set. ∗ denotes the
+              methods trained on the
+              AGORA training set only. ⋄ denotes the methods that use the AiOS’s bounding box to crop the image. The
+              best results are colored with red,
+              and the second-best results are colored with blue for the upper and lower parts of the table,
+              respectively.
+            </p>
+          </div>
+        </div>
+      </div>
 
 
 
-<!--<section class="section" id="BibTeX">-->
-<!--  <div class="container is-max-desktop content">-->
-<!--    <h2 class="title">BibTeX</h2>-->
-<!--    <pre><code>@InProceedings{zhou2023propainter,-->
-<!--      title     = {{ProPainter}: Improving Propagation and Transformer for Video Inpainting},-->
-<!--      author    = {Zhou, Shangchen and Li, Chongyi and Chan, Kelvin C.K and Loy, Chen Change},-->
-<!--      booktitle = {Proceedings of IEEE International Conference on Computer Vision (ICCV)},-->
-<!--      year      = {2023}-->
-<!--    }</code></pre>-->
-<!--  </div>-->
-<!--</section>-->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h3 class="title is-3"><a href="https://bedlam-leaderboard.is.tuebingen.mpg.de/leaderboard">BEDLAM SMPL-X</a>
+          </h3>
+        </div>
+      </div>
+      <div class="column is-centered has-text-centered">
+        <img style="width: 80%;" src="./assets/BEDLAM_SMPLX.png">
+      </div>
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 2. BEDLAM test set. The best results are in bold. † denotes methods that include the AGROA training
+              set
+            </p>
+          </div>
+        </div>
+      </div>
+
+      
+
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h3 class="title is-3"><a href="https://agora-evaluation.is.tuebingen.mpg.de/">AGORA SMPL</a></h3>
+        </div>
+      </div>
+      <div class="column is-centered has-text-centered">
+        <img style="width: 60%;" src="./assets/AGORA_SMPL.png">
+      </div>
+
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              Table 3. AGORA SMPL test set. † indicates that this method is fine-tuned on the AGORA training set.
+              AiOS_0.5 and AiOS_0.3, representing the use of a 0.5 score threshold and a 0.3 score threshold to filter
+              the data, respectively.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section> -->
+
+  <!-- comparisons with Existing EHPS methods -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h3 class="title is-3">Visualizations</h3>
+        </div>
+      </div>
+
+      <div class="content">
+        
+        <div class="columns">
 
 
-<footer class="footer">
+            
+            <div class="column">
+                <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                  <div class="image" ><img class="rounded float-left" src="assets/AiOS/02.png"> </div>
+                  <div class="image"><img class="rounded float-left" src="assets/AiOS/02_aios.png"> </div>
+                </div>
+            </div>
+
+            <div class="is-divider-vertical" data-content="OR"></div>
+
+            <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/AiOS/04.png"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/AiOS/04_aios.png"> </div>
+              </div>
+            </div>
+            <div class="is-divider-vertical" data-content="OR"></div>
+
+            <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/AiOS/07.png"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/AiOS/07_aios.png"> </div>
+              </div>
+            </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+        </div>
+
+        <div class="columns">
+
+          <div class="column">
+            <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+              <div class="image" ><img class="rounded float-left" src="assets/AiOS/03.png"> </div>
+              <div class="image"><img class="rounded float-left" src="assets/AiOS/03_aios.png"> </div>
+            </div>
+          </div>
+
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/AiOS/05.png"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/AiOS/05_aios.png"> </div>
+              </div>
+          </div>
+
+          <div class="is-divider-vertical" data-content="OR"></div>
+
+          <div class="column">
+            <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+              <div class="image" ><img class="rounded float-left" src="assets/AiOS/06.png"> </div>
+              <div class="image"><img class="rounded float-left" src="assets/AiOS/06_aios.png"> </div>
+            </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+        </div>
+
+
+        <!-- <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <div class="content has-text-centered">
+              <p>
+                From left to right: 1. ROMP, 2. BEV, 3. AiOS (Ours)
+              </p>
+            </div>
+          </div>
+        </div> -->
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- comparisons with Existing one-stage methods -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h3 class="title is-3">Comparisons with Existing One-stage Methods</h3>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="columns">
+
+            <div class="column">
+                <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                  <div class="image" ><img class="rounded float-left" src="assets/ROMP/01.jpg"> </div>
+                  <div class="image"><img class="rounded float-left" src="assets/ROMP/01_romp.png"> </div>
+                </div>
+            </div>
+            <div class="is-divider-vertical" data-content="OR"></div>
+            
+            <div class="column">
+                <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                  <div class="image"><img class="rounded float-left" src="assets/ROMP/01.jpg"> </div>
+                  <div class="image"><img class="rounded float-left" src="assets/ROMP/01_bev.png"> </div>
+                </div>
+            </div>
+            <div class="is-divider-vertical" data-content="OR"></div>
+            
+            <div class="column">
+                <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                  <!-- <div class="desc">SMPL-X Overlay</div> -->
+                  <div class="image"><img class="rounded float-left" src="assets/ROMP/01.jpg"> </div>
+                  <div class="image"><img class="rounded float-left" src="assets/ROMP/01_ours.jpg"> </div>
+                  
+                </div>
+            </div>
+
+
+            <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+            <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+            
+        </div>
+
+        <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/02.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/02_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/02.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/02_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <!-- <div class="desc">SMPL-X Overlay</div> -->
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/02.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/02_ours.jpg"> </div>
+                
+              </div>
+          </div>
+
+
+          <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+          <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+          
+        </div>
+
+        <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/03.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/03_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/03.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/03_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <!-- <div class="desc">SMPL-X Overlay</div> -->
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/03.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/03_ours.jpg"> </div>
+                
+              </div>
+          </div>
+
+
+          <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+          <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+          
+        </div>
+
+        <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/04.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/04_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/04.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/04_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <!-- <div class="desc">SMPL-X Overlay</div> -->
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/04.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/04_ours.jpg"> </div>
+                
+              </div>
+          </div>
+
+
+          <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+          <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+          
+        </div>
+        
+        <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/05.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/05_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/05.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/05_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <!-- <div class="desc">SMPL-X Overlay</div> -->
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/05.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/05_ours.jpg"> </div>
+                
+              </div>
+          </div>
+
+
+          <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+          <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+          
+        </div>
+
+        <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/06.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/06_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/06.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/06_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <!-- <div class="desc">SMPL-X Overlay</div> -->
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/06.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/06_ours.jpg"> </div>
+                
+              </div>
+          </div>
+
+
+          <script>$(function () { $(".twentytwenty_aios-container").twentytwenty_aios() });</script>
+          <!-- <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script> -->
+          
+        </div>
+        
+        <!-- <div class="columns">
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image" ><img class="rounded float-left" src="assets/ROMP/07.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/07_romp.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1"> 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/07.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/07_bev.png"> </div>
+              </div>
+          </div>
+          <div class="is-divider-vertical" data-content="OR"></div>
+          
+          <div class="column">
+              <div class="twentytwenty_aios-container" data-orientation="horizontal" ratio="1" > 
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/07.jpg"> </div>
+                <div class="image"><img class="rounded float-left" src="assets/ROMP/07_ours.jpg"> </div>
+                
+              </div>
+          </div>
+          
+        </div> -->
+
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <div class="content has-text-centered">
+              <p>
+                From left to right: 1. ROMP, 2. BEV, 3. AiOS (Ours)
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Acknowledge -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column">
+          <h2 class="title is-2">Acknowledge</h2>
+
+          <div class="content has-text-justified">
+            <p>
+              This project is supported by the Hong Kong Innovation and Technology Commission (InnoHK Project
+              CIMDA).
+              It is also supported by the Ministry of Education, Singapore, under its MOE AcRF Tier 2 (MOET2EP20221-
+              0012), NTU NAP,
+              and under the RIE2020 Industry Alignment Fund - Industry Collaboration Projects (IAF-ICP) Funding
+              Initiative,
+              as well as cash and in-kind contribution from the industry partner(s).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!--<section class="section" id="BibTeX">-->
+  <!--  <div class="container is-max-desktop content">-->
+  <!--    <h2 class="title">BibTeX</h2>-->
+  <!--    <pre><code>@InProceedings{zhou2023propainter,-->
+  <!--      title     = {{ProPainter}: Improving Propagation and Transformer for Video Inpainting},-->
+  <!--      author    = {Zhou, Shangchen and Li, Chongyi and Chan, Kelvin C.K and Loy, Chen Change},-->
+  <!--      booktitle = {Proceedings of IEEE International Conference on Computer Vision (ICCV)},-->
+  <!--      year      = {2023}-->
+  <!--    }</code></pre>-->
+  <!--  </div>-->
+  <!--</section>-->
+
+
+  <footer class="footer">
     <div class="columns is-centered">
       <div class="column is-8">
         <div class="content">
-          <div class="columns is-centered"><p>
-            This website template is borrowed from <a href="https://caizhongang.com/projects/SMPLer-X/" target="_blank">SMPLer-X</a>.
-          </p></div>
+          <div class="columns is-centered">
+            <p>
+              This website template is borrowed from <a href="https://caizhongang.com/projects/SMPLer-X/"
+                target="_blank">SMPLer-X</a>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
 
-<!--    =================Visitor==========================-->
-<!--    <div class="content has-text-centered" style="padding:0 0 0 0">-->
-<!--      <img src='https://api.infinitescript.com/badgen/count?name=sczhou/ProPainter&ltext=Visitors&color=3977dd' alt='visitors'>-->
-<!--    </div>-->
+    <!--    =================Visitor==========================-->
+       <div class="content has-text-centered" style="padding:0 0 0 0">
+         <img src='https://api.infinitescript.com/badgen/count?name=sczhou/ProPainter&ltext=Visitors&color=3977dd' alt='visitors'>
+       </div>
 
-  </div>
-</footer>
+    </div>
+  </footer>
 
-  <!-- custom js file  -->
-  <script defer src="./assets/js/fontawesome.all.min.js"></script>
-  <script src="./assets/js/bulma-carousel.min.js"></script>
-  <script src="./assets/js/bulma-slider.min.js"></script>
-  <script src="./assets/js/index.js"></script>
-  <script src="./assets/js/jquery.event.move.js"></script>
-  <script src="./assets/js/jquery.twentytwenty.js"></script>
-  <script>
-  $(function(){
-    $(".twentytwenty-container").twentytwenty();
-    // $(".twentytwenty-container", "#results-carousel").twentytwenty({default_offset_pct: 0.5, ratio: 0.5});
-  });
-  </script>
+
+
 </body>
 </html>
