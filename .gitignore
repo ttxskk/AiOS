@@ -23,7 +23,8 @@ sdist/
 var/
 wheels/
 *.egg-info/
-data/
+data/datasets/
+data/body_models/
 .installed.cfg
 *.egg
 MANIFEST
@@ -127,7 +128,7 @@ test_result/
 
 
 # Visualization
-*.mp4
+# *.mp4
 *.png
 *.gif
 *.jpg

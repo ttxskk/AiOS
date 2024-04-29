@@ -118,7 +118,7 @@ b. AGORA Validatoin
 Run the following command and it will generate a 'predictions/' result folder which can evaluate with the [agora evaluation tool](https://github.com/pixelite1201/agora_evaluation)    
 
 ```shell
-sh scripts/test_agora_val.sh data/checkpoint/aios_checkpoint.pth test_result/agora_val
+sh scripts/test_agora_val.sh data/checkpoint/aios_checkpoint.pth agora_val
 ```
 
 
@@ -127,7 +127,7 @@ b. AGORA Test Leaderboard
 
 Run the following command and it will generate a 'predictions.zip' which can be submitted to AGORA Leaderborad
 ```shell
-sh scripts/test_agora.sh data/checkpoint/aios_checkpoint.pth test_result/agora_val
+sh scripts/test_agora.sh data/checkpoint/aios_checkpoint.pth agora_test
 ```
 
 

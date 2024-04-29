@@ -10,4 +10,4 @@ python -m torch.distributed.launch \
     --eval \
     --inference \
     --inference_input data/datasets/agora/3840x2160/validation \
-    --output_dir ${OUTPUT_DIR}
+    --output_dir test_result/${OUTPUT_DIR}
