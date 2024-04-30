@@ -115,7 +115,7 @@ def main(args):
     # debugpy.breakpoint()
     print('Loading config file from {}'.format(args.config_file))
     # import ipdb;ipdb.set_trace()
-    shutil.copy2(args.config_file,'/mnt/AFS_sunqingping/code/ED-SMPL/config/aios_smplx.cfg.py')
+    shutil.copy2(args.config_file,'./config/aios_smplx.cfg.py')
     torch.distributed.barrier()
     from config.config import cfg
     from datasets.dataset import MultipleDatasets
