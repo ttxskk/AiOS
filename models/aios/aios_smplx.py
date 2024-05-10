@@ -450,20 +450,6 @@ class AiOSSMPLX(nn.Module):
                                num_box_decoder_layers)
             ]
 
-        # _f_embed = MLP(hidden_dim * (self.num_body_points + 4) , hidden_dim, 1, 3)
-        # nn.init.constant_(_f_embed.layers[-1].weight.data, 0)
-        # nn.init.constant_(_f_embed.layers[-1].bias.data, 0)
-        # if dec_pred_bbox_embed_share:
-        #     f_embed_layerlist = [
-        #         _f_embed for i in range(transformer.num_decoder_layers -
-        #                                   num_box_decoder_layers)
-        #     ]
-        # else:
-        #     f_embed_layerlist = [
-        #         copy.deepcopy(_f_embed)
-        #         for i in range(transformer.num_decoder_layers -
-        #                        num_box_decoder_layers)
-        #     ]
         ###########################################################################
         #  smplx body pose + hand pose + expression + betas + kp2d + kp3d + cam
         ###########################################################################

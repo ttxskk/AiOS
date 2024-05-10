@@ -558,14 +558,6 @@ class SetCriterion(nn.Module):
         lhand_idx = smpl_x.joint_part['lhand']
         rhand_idx = smpl_x.joint_part['rhand']
         
-        # visualize_kp3d(targets_smpl_kp3d.detach().cpu().numpy(),
-        #                             output_path='./figs/gt3d',
-        #                             data_source='smplx_137')  
-        # visualize_kp3d(pred_smpl_kp3d.detach().cpu().numpy(),
-        #                             output_path='./figs/pred3d',
-        #                             data_source='smplx_137')
-        # currently, only mpi_inf_3dhp and h36m have 3d keypoints
-        # both datasets have right_hip_extra and left_hip_extra
         loss_smpl_kp3d = F.l1_loss(pred_smpl_kp3d,
                                    targets_smpl_kp3d,
                                    reduction='none')
@@ -775,10 +767,7 @@ class SetCriterion(nn.Module):
         target_face_boxes_conf = torch.cat(
                     [t[i] for t, (_, i) in zip(data_batch['face_bbox_valid'], indices)], dim=0)
         face_num_boxes = target_face_boxes_conf.sum()
-        # t_pose  = torch.cat([t[i] for t, (_, i) in zip(data_batch['smplx_pose'], indices)], dim=0)
-        # t_shape = torch.cat([t[i] for t, (_, i) in zip(data_batch['smplx_shape'], indices)], dim=0)
-        # t_expr  = torch.cat([t[i] for t, (_, i) in zip(data_batch['smplx_expr'], indices)], dim=0)
-        # import ipdb;ipdb.set_trace()
+        
         keypoints2d_conf = keypoints2d_conf.repeat(1, 1, 2)
 
         targets_kp2d = targets_kp2d[:, :, :2].float()
@@ -800,162 +789,7 @@ class SetCriterion(nn.Module):
         )
 
         pred_smpl_kp2d = pred_smpl_kp2d / img_wh[:, None]
-        vis=False
-        # if 'vis' in cfg:
-        #     vis=cfg['vis']
-        # vis = True
-        if vis:
-            import mmcv
-            import cv2
-            import numpy as np
-            from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-            from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-            from detrsmpl.models.body_models.builder import build_body_model
-            
-            from pytorch3d.io import save_obj
-            from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-
-            img = mmcv.imdenormalize(
-                img=(data_batch['img'][0].cpu().numpy()).transpose(1, 2, 0), 
-                mean=np.array([123.675, 116.28, 103.53]), 
-                std=np.array([58.395, 57.12, 57.375]),
-                to_bgr=True).astype(np.uint8)
-            cv2.imwrite('test.png', img)
-            device = outputs['pred_smpl_kp3d'].device
-            
-            body_model = dict(
-                type='smplx',
-                keypoint_src='smplx',
-                num_expression_coeffs=10,
-                num_betas=10,
-                keypoint_dst='smplx_137',
-                model_path='data/body_models/smplx',
-                use_pca=False,
-                use_face_contour=True)
-            bm = build_body_model(body_model).to(device)
-            pred_smpl_body_pose = rotmat_to_aa(outputs['pred_smpl_pose'][idx])
-            pred_smpl_lhand_pose = rotmat_to_aa(outputs['pred_smpl_lhand_pose'][idx])
-            pred_smpl_rhand_pose = rotmat_to_aa(outputs['pred_smpl_rhand_pose'][idx])
-            pred_smpl_jaw_pose = rotmat_to_aa(outputs['pred_smpl_jaw_pose'][idx])
-            pred_smpl_shape = outputs['pred_smpl_beta'][idx]
-            pred_output = bm(
-                betas=pred_smpl_shape.reshape(-1, 10),
-                body_pose=pred_smpl_body_pose[:,1:].reshape(-1, 21*3), 
-                global_orient=pred_smpl_body_pose[:,:1].reshape(-1, 3),
-                left_hand_pose=pred_smpl_lhand_pose.reshape(-1, 15*3),
-                right_hand_pose=pred_smpl_rhand_pose.reshape(-1, 15*3),
-                leye_pose=torch.zeros_like(pred_smpl_jaw_pose).reshape(-1, 3),
-                reye_pose=torch.zeros_like(pred_smpl_jaw_pose).reshape(-1, 3),
-                expression=torch.zeros_like(pred_smpl_shape).reshape(-1, 10),
-                jaw_pose=pred_smpl_jaw_pose.reshape(-1, 3))
-            verts = pred_output['vertices']
-            # import ipdb;ipdb.set_trace()
-            # for i_obj,v in enumerate(verts):
-            #     save_obj('./figs/pred_smpl_%d.obj'%i_obj,verts = v,faces=torch.tensor([]))
-            pred_cam = outputs['pred_smpl_cam'][idx]
-            
-            targets_smpl_pose = data_batch['smplx_pose'][0]
-            targets_shape = data_batch['smplx_shape'][0]
-            gt_kp3d = data_batch['joint_cam'][0]
-            
-            gt_kp2d = data_batch['joint_img'][0]
-            gt_body_boxes = torch.cat(
-                [t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-            # gt kp3d
-            pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()
-            # import ipdb;ipdb.set_trace()
-            visualize_kp3d(gt_kp3d.detach().cpu().numpy(),
-                                    output_path='./figs/gt3d',
-                                    data_source='smplx_137')  
-            # visualize_kp3d(pred_smpl_kp3d.detach().cpu().numpy(),
-            #                         output_path='./figs/pred3d',
-            #                         data_source='smplx_137')           
-            # gt kp2d
-            img  =(data_batch['img'][0].permute(1,2,0)*255).int().cpu().numpy()
-            gt_2d= gt_kp2d.detach().cpu().numpy()[...,:2]*data_batch['img_shape'].cpu().numpy()[0,None,None,::-1]
-            gt_2d[...,0] = gt_2d[...,0]/12
-            gt_2d[...,1] = gt_2d[...,1]/16
-            import mmcv
-            gt_bbox = (box_ops.box_cxcywh_to_xyxy(targets[0]['boxes'][0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            gt_bbox_lhand = (box_ops.box_cxcywh_to_xyxy(targets[0]['lhand_boxes'][0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            gt_bbox_rhand = (box_ops.box_cxcywh_to_xyxy(targets[0]['rhand_boxes'][0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            gt_bbox_face = (box_ops.box_cxcywh_to_xyxy(targets[0]['face_boxes'][0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            gt_bbox = np.concatenate([gt_bbox,gt_bbox_face,gt_bbox_rhand,gt_bbox_lhand],axis=0)
-            # gt_bbox = (box_ops.box_cxcywh_to_xyxy(gt_body_boxes).reshape(-1,2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1][None,None,:]).reshape(-1,4)
-            img = mmcv.imshow_bboxes(img.copy(), gt_bbox, show=False)
-            # import ipdb;ipdb.set_trace()
-            gt_2d = data_batch['joint_img'][0][:,:,:2].cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0,None,None,::-1]# *data_batch['joint_img'][0][:,:,2:].cpu().numpy()
-            gt_2d[...,0] = gt_2d[...,0]/12
-            gt_2d[...,1] = gt_2d[...,1]/16
-            # data_batch['joint_img']
-            # gt_kp2d = gt_2d[0][keypoints2d_conf[0]!=0]
-            visualize_kp2d(
-                (gt_2d).reshape(-1,2)[None], 
-                output_path='./figs/gt2d', 
-                image_array=img.copy()[None], 
-                # data_source='smplx_137',
-                disable_limbs = True,
-                overwrite=True)
-            img  =(data_batch['img'][0].permute(1,2,0)*255).int().cpu().numpy()
-            # pred_smpl_kp2d = project_points_new(
-            #     points_3d=outputs['pred_smpl_kp3d'][:,:2].reshape(-1,137,3),
-            #     pred_cam=pred_cam,
-            #     focal_length=focal_length,
-            #     camera_center=img_wh/2
-            # )
-            
-            img_shape = data_batch['img_shape'][0]
-            
-            # import ipdb;ipdb.set_trace()
-            
-            
-            # pred_kp2d = pred_kp2d.cpu().detach().numpy()*img_shape.cpu().numpy()[None,None ::-1]
-            pred_bbox_all = []
-            for i in idx[0]:
-
-                pred_bbox_body = (box_ops.box_cxcywh_to_xyxy(outputs['pred_boxes'][0,i]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-                pred_bbox_lhand = (box_ops.box_cxcywh_to_xyxy(outputs['pred_lhand_boxes'][0,i]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-                pred_bbox_rhand = (box_ops.box_cxcywh_to_xyxy(outputs['pred_rhand_boxes'][0,i]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-                pred_bbox_face = (box_ops.box_cxcywh_to_xyxy(outputs['pred_face_boxes'][0,i]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-                pred_bbox = np.concatenate([pred_bbox_body,pred_bbox_face,pred_bbox_rhand,pred_bbox_lhand],axis=0)
-                pred_bbox_all.append(pred_bbox)
-            src_body_boxes = outputs['pred_boxes'][idx]
-            pred_bbox_all = np.concatenate(pred_bbox_all,axis=0)
-            # pred_bbox_body = (box_ops.box_cxcywh_to_xyxy(src_body_boxes).reshape(-1,2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1][None,None,:]).reshape(-1,4)
-            #  import ipdb;ipdb.set_trace()
-            img = mmcv.imshow_bboxes(img.copy(), pred_bbox, show=False)
-            # cv2.imwrite('test.png',img)
-            
-            visualize_kp2d(
-                (pred_smpl_kp2d*img_wh[:, None])[None].detach().cpu().numpy(), 
-                output_path='./figs/pred2d', 
-                image_array=img.copy()[None], 
-                data_source='smplx_137',
-                overwrite=True) 
-
-            # visualize_kp2d(
-            #     (pred_smpl_kp2d*img_wh[:, None])[None].detach().cpu().numpy(), 
-            #     output_path='./figs/pred2d', 
-            #     image_array=img.copy()[None], 
-            #     data_source='smplx_137',
-            #     overwrite=True)  
-            vis_smpl=True    
-            if vis_smpl: 
-                # import ipdb;ipdb.set_trace()
-                gt_output = bm(
-                    betas=targets_shape.reshape(-1, 10),
-                    body_pose=targets_smpl_pose[:,3:66].reshape(-1, 21*3), 
-                    global_orient=targets_smpl_pose[:,:3].reshape(-1, 3),
-                    left_hand_pose=targets_smpl_pose[:,66:111].reshape(-1, 15*3),
-                    right_hand_pose=targets_smpl_pose[:,111:156].reshape(-1, 15*3),
-                    leye_pose=torch.zeros_like(targets_smpl_pose[:,:3]).reshape(-1, 3),
-                    reye_pose=torch.zeros_like(targets_smpl_pose[:,:3]).reshape(-1, 3),
-                    expression=torch.zeros_like(targets_shape).reshape(-1, 10),
-                    jaw_pose=targets_smpl_pose[:,156:].reshape(-1, 3))
-                verts = gt_output['vertices']
-                for i_obj,v in enumerate(verts):
-                    save_obj('./figs/gt_smpl_%d.obj'%i_obj,verts = v,faces=torch.tensor([]))
-            import ipdb;ipdb.set_trace()
+        
         losses = {}
 
         if valid_num == 0:
@@ -1021,264 +855,6 @@ class SetCriterion(nn.Module):
 
         return losses
 
-    # def loss_smpl_kp2d(self,
-    #                    outputs,
-    #                    targets,
-    #                    indices,
-    #                    idx,
-    #                    num_boxes,
-    #                    data_batch,
-    #                    focal_length=5000.,
-    #                    has_keypoints2d=None,
-    #                    face_hand_kpt=False):
-    #     """Compute loss for 2d keypoints."""
-    #     device = outputs['pred_logits'].device
-    #     indices = indices[0]
-    #     # import ipdb;ipdb.set_trace()
-    #     valid_num=0
-    #     for indice in indices[0]:
-    #         valid_num+=len(indice)
-    #     # pdb.set_trace()
-    #     pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()#.detach()
-
-    #     pred_cam = outputs['pred_smpl_cam'][idx].float()
-    #     pred_cam_f = torch.nn.functional.softmax(outputs['pred_smpl_cam_f'][idx].float()[0])*5000
-    #     targets_kp2d = torch.cat([t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)], dim=0)
-
-    #     keypoints2d_conf =  targets_kp2d[:,:,2:].clone()
-    #     targets_kp2d = targets_kp2d[:,:,:2]
-
-    #     target_lhand_boxes_conf = torch.cat(
-    #                 [t[i] for t, (_, i) in zip(data_batch['lhand_bbox_valid'], indices)], dim=0)
-    #     lhand_num_boxes = target_lhand_boxes_conf.sum()
-    #     target_rhand_boxes_conf = torch.cat(
-    #                 [t[i] for t, (_, i) in zip(data_batch['rhand_bbox_valid'], indices)], dim=0)
-    #     rhand_num_boxes = target_rhand_boxes_conf.sum()
-    #     target_face_boxes_conf = torch.cat(
-    #                 [t[i] for t, (_, i) in zip(data_batch['face_bbox_valid'], indices)], dim=0)
-    #     face_num_boxes = target_face_boxes_conf.sum()
-    #     keypoints2d_conf = keypoints2d_conf.repeat(1, 1, 2)
-
-    #     targets_kp2d = targets_kp2d[:, :, :2].float()
-    #     targets_kp2d[:,:,0] = targets_kp2d[:,:,0]/cfg.output_hm_shape[2]
-    #     targets_kp2d[:,:,1] = targets_kp2d[:,:,1]/cfg.output_hm_shape[1]
-    #     # targets_kp2d = targets_kp2d*2-1
-    #     img_wh =  torch.cat([data_batch['img_shape'][i][None] for i in idx[0]], dim=0).flip(-1)
-        
-        
-    #     src_body_keypoints = outputs['pred_keypoints'][idx]
-        
-    #     if len(src_body_keypoints) ==0:
-    #         pred_cam = pred_cam
-    #     else:
-    #         # gt kp2d
-    #         keypoint2d_gt_coco = torch.cat( [t['keypoints'][i] for t, (_, i) in zip(targets, indices)], dim=0).clone()
-    #         keypoint2d_conf = keypoint2d_gt_coco[:, (self.num_body_points * 2):].clone()
-    #         keypoint2d_gt_coco = keypoint2d_gt_coco[:, 0:(self.num_body_points * 2)].clone().reshape(-1, self.num_body_points, 2)
-    #         keypoint2d_gt_coco = keypoint2d_gt_coco * img_wh[:, None]
-            
-
-    #         # gt kp3d
-    #         keypoint3d_gt = torch.cat(
-    #             [t[i] for t, (_, i) in zip(data_batch['joint_cam'], indices)],
-    #             dim=0)
-    #         keypoint3d_gt_coco, _ = convert_kps(keypoint3d_gt.clone(), 'smplx_137', 'coco', approximate=True)
-    #         keypoint3d_conf = keypoint3d_gt_coco[..., -1]
-
-    #         # # pred kp2d
-    #         keypoint2d_pred_coco = src_body_keypoints[:, 0:(self.num_body_points * 2)].clone().reshape(-1, self.num_body_points, 2)
-    #         keypoint2d_pred_coco = keypoint2d_pred_coco * img_wh[:, None]
-            
-    #         # # pred kp3d
-    #         pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()
-    #         keypoint3d_pred_coco, _ = convert_kps(pred_smpl_kp3d.clone(), 'smplx_137', 'coco', approximate=True)
-            
-    #         # calculate cam_transl using gt
-    #         # cal_cam = estimate_cam_weakperspective_batch(
-    #         #     keypoint3d_gt_coco,
-    #         #     keypoint2d_gt_coco,
-    #         #     keypoint2d_conf,
-    #         #     keypoint3d_conf,
-    #         #     img_wh)
-    #         # cal_t = pred_cam_to_transl(
-    #         #     cal_cam, 
-    #         #     5000,
-    #         #     img_wh.max(-1).values)         
-    #         cal_cam = estimate_cam_weakperspective_batch(
-    #             keypoint3d_pred_coco,
-    #             keypoint2d_pred_coco,
-    #             None,
-    #             None,
-    #             img_wh)
-    #         cal_t = pred_cam_to_transl(
-    #             cal_cam, 
-    #             pred_cam_f,
-    #             img_wh.max(-1).values)  
-
-    #         rot_t = torch.eye(3, device=device,
-    #                         dtype=keypoint3d_gt_coco.dtype).unsqueeze(0).expand(
-    #                             cal_t.shape[0], -1, -1)
-    #         pred_smpl_kp2d_with_cal_cam = perspective_projection(
-    #             pred_smpl_kp3d[...,:3],
-    #             rot_t,
-    #             cal_t,
-    #             pred_cam_f,
-    #             img_wh/2)
-            
-            
-    #         pred_smpl_kp2d_with_cal_cam = pred_smpl_kp2d_with_cal_cam / img_wh[:, None]
-            
-    #         pred_smpl_kp2d_with_pred_cam = project_points_new(
-    #             points_3d=pred_smpl_kp3d,
-    #             pred_cam=pred_cam,
-    #             focal_length=5000,
-    #             camera_center=img_wh/2
-    #         )            
-    #         pred_smpl_kp2d_with_pred_cam = pred_smpl_kp2d_with_pred_cam / img_wh[:, None]
-            
-    #         pred_smpl_kp2d_with_cal_cam = pred_smpl_kp2d_with_cal_cam + pred_smpl_kp2d_with_pred_cam*0
-    #         # calculate cam_transl using pred
-    #         if False:
-    #             import mmcv
-    #             import cv2
-    #             import numpy as np
-    #             from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-    #             from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-    #             from detrsmpl.models.body_models.builder import build_body_model
-    #             from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-    #             img = mmcv.imdenormalize(
-    #                 img=(data_batch['img'][0].cpu().numpy()).transpose(1, 2, 0), 
-    #                 mean=np.array([123.675, 116.28, 103.53]), 
-    #                 std=np.array([58.395, 57.12, 57.375]),
-    #                 to_bgr=True).astype(np.uint8)
-    #             cal_cam = estimate_cam_weakperspective_batch(
-    #                 keypoint3d_pred_coco,
-    #                 keypoint2d_pred_coco,
-    #                 keypoint2d_conf,
-    #                 keypoint3d_conf,
-    #                 img_wh)
-    #             f = 1920*1137/(1920*2)
-    #             cal_t = pred_cam_to_transl(
-    #                 cal_cam, 
-    #                 f,
-    #                 img_wh.max(-1).values)         
-                
-
-    #             rot_t = torch.eye(3, device=device,
-    #                             dtype=keypoint3d_gt_coco.dtype).unsqueeze(0).expand(
-    #                                 cal_t.shape[0], -1, -1)
-    #             pred_coco_kp2d_with_cal_cam = perspective_projection(
-    #                 keypoint3d_pred_coco[...,:3],
-    #                 rot_t,
-    #                 cal_t,
-    #                 f,
-    #                 img_wh/2)
-    #             visualize_kp2d(
-    #                 pred_coco_kp2d_with_cal_cam[None].detach().cpu().numpy(), 
-    #                 output_path='./figs/pred2d', 
-    #                 image_array=img.copy()[None], 
-    #                 data_source='coco',
-    #                 overwrite=True) 
-                
-    #             visualize_kp3d(
-    #                 torch.concat([keypoint3d_pred_coco[None],keypoint3d_gt_coco[...,:3][None]],0).detach().cpu().numpy(),
-    #                 output_path='./figs/gt3d',
-    #                 data_source='coco')
-                
-                    
-    #             pred_smpl_kp2d = project_points_new(
-    #                 points_3d=pred_smpl_kp3d,
-    #                 pred_cam=pred_cam,
-    #                 focal_length=focal_length,
-    #                 camera_center=img_wh/2
-    #             )
-    #             visualize_kp2d(
-    #                 pred_smpl_kp2d[None].detach().cpu().numpy(), 
-    #                 output_path='./figs/pred3d', 
-    #                 image_array=img.copy()[None], 
-    #                 data_source='smplx_137',
-    #                 overwrite=True) 
-    #     # pred_smpl_kp2d = pred_smpl_kp2d / img_wh[:, None]
-        
-    #     losses = {}
-
-    #     if valid_num == 0:
-    #         losses['loss_smpl_body_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0
-
-    #         losses['loss_smpl_lhand_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0 
-        
-    #         losses['loss_smpl_rhand_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0 
-        
-    #         losses['loss_smpl_face_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0 
-    #         return losses        
-
-    #     body_idx = smpl_x.joint_part['body']
-    #     face_idx = smpl_x.joint_part['face']
-    #     lhand_idx = smpl_x.joint_part['lhand']
-    #     rhand_idx = smpl_x.joint_part['rhand']
-        
-    #     loss_smpl_kp2d_cal_cam = F.l1_loss(pred_smpl_kp2d_with_cal_cam,
-    #                                targets_kp2d,
-    #                                reduction='none')
-    #     body_loss_cal_cam = torch.sum(loss_smpl_kp2d_cal_cam[:, body_idx, :])  / num_boxes
-        
-        
-    #     loss_smpl_kp2d_pred_cam = F.l1_loss(pred_smpl_kp2d_with_pred_cam,
-    #                                targets_kp2d,
-    #                                reduction='none')
-    #     body_loss_pred_cam = torch.sum(loss_smpl_kp2d_pred_cam[:, body_idx, :])  / num_boxes
-        
-        
-    #     valid_pos = keypoints2d_conf > 0
-    #     if keypoints2d_conf[valid_pos].numel() == 0:
-    #         return {
-    #             'loss_smpl_body_kp2d': torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0,
-    #             'loss_smpl_lhand_kp2d': torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0,
-    #             'loss_smpl_rhand_kp2d': torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0,
-    #             'loss_smpl_face_kp2d': torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0,
-    #         }
-    #     loss_smpl_kp2d_cal_cam = loss_smpl_kp2d_cal_cam * keypoints2d_conf
-    #     # loss /= keypoints2d_conf[valid_pos].numel()
-
-    #     # import ipdb;ipdb.set_trace()
-    #     if face_hand_kpt:
-    #         losses['loss_smpl_body_kp2d'] = torch.sum(loss_smpl_kp2d_cal_cam[:, body_idx, :])  / num_boxes
-    #         if lhand_num_boxes>0:
-    #             losses['loss_smpl_lhand_kp2d'] = torch.sum(loss_smpl_kp2d_cal_cam[:, lhand_idx, :]) / lhand_num_boxes
-    #         else:
-    #             losses['loss_smpl_lhand_kp2d'] =torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0
-    #         if rhand_num_boxes>0:
-    #             losses['loss_smpl_rhand_kp2d'] = torch.sum(loss_smpl_kp2d_cal_cam[:, rhand_idx, :]) / rhand_num_boxes
-    #         else:
-    #             losses['loss_smpl_rhand_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0
-    #         if face_num_boxes>0:
-    #             losses['loss_smpl_face_kp2d'] = torch.sum(loss_smpl_kp2d_cal_cam[:, face_idx, :]) / face_num_boxes
-    #         else:
-    #             losses['loss_smpl_face_kp2d'] = torch.as_tensor(0., device=device) + pred_smpl_kp2d_with_cal_cam.sum()*0
-    #     else:
-    #         losses['loss_smpl_body_kp2d'] = torch.sum(loss_smpl_kp2d_cal_cam[:, body_idx, :])  / num_boxes
-    #         losses['loss_smpl_lhand_kp2d'] = 0*torch.sum(loss_smpl_kp2d_cal_cam[:, lhand_idx, :]) / (keypoints2d_conf[:, lhand_idx].sum() + 1e-6)
-    #         losses['loss_smpl_rhand_kp2d'] = 0*torch.sum(loss_smpl_kp2d_cal_cam[:, rhand_idx, :]) / (keypoints2d_conf[:, rhand_idx].sum() + 1e-6)
-    #         losses['loss_smpl_face_kp2d'] = 0*torch.sum(loss_smpl_kp2d_cal_cam[:, face_idx, :]) / (keypoints2d_conf[:, face_idx].sum() + 1e-6)
-
-    #     if vis:
-    #         import mmcv
-    #         import cv2
-    #         import numpy as np
-    #         from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-    #         from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-    #         from detrsmpl.models.body_models.builder import build_body_model
-            
-    #         from pytorch3d.io import save_obj
-    #         from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-
-    #         img = mmcv.imdenormalize(
-    #             img=(data_batch['img'][0].cpu().numpy()).transpose(1, 2, 0), 
-    #             mean=np.array([123.675, 116.28, 103.53]), 
-    #             std=np.array([58.395, 57.12, 57.375]),
-    #             to_bgr=True).astype(np.uint8)
-    #         cv2.imwrite('test.png', img)
-    #     return losses
 
     def loss_smpl_kp2d_ba(self,
                           outputs,
@@ -1297,15 +873,7 @@ class SetCriterion(nn.Module):
         pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()#.detach()
         pred_cam = outputs['pred_smpl_cam'][idx].float()
 
-        # pdb.set_trace()
-
-        # max_img_res = orig_img_res.max(-1)[0]
-        # torch.cat([ torch.Tensor([orig_img_res[0]]*9), torch.Tensor([orig_img_res[1]]*9)], 0)
-        # torch.cat([orig_img_res[i][None].repeat(num,1) for i, num in enumerate(instance_num)], 0)
-
-        # orig_img_res = torch.Tensor([t['orig_size'] for t, (_, i) in zip(targets, indices)]).type_as(pred_smpl_kp3d)
-        # orig_img_res = torch.Tensor([target['orig_size'] for target in targets]).type_as(pred_smpl_kp3d)
-        # max_img_res = torch.cat([torch.full_like(src, i) for i, (src, _) in zip(max_img_res, indices)]).type_as(pred_smpl_kp3d)
+        
         valid_num=0
         for indice in indices[0]:
             valid_num+=len(indice)
@@ -1434,81 +1002,6 @@ class SetCriterion(nn.Module):
                      pred_smpl_kp2d[:, smpl_x.joint_part[part_name][-1] + 1:, :]),
                     1)
                 
-                vis = False
-                if vis:
-                    import mmcv
-                    import cv2
-                    import numpy as np
-                    from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                    from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-                    from detrsmpl.models.body_models.builder import build_body_model
-                    
-                    from pytorch3d.io import save_obj
-                    from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-
-                    img = mmcv.imdenormalize(
-                        img=(data_batch['img'][0].cpu().numpy()).transpose(1, 2, 0), 
-                        mean=np.array([123.675, 116.28, 103.53]), 
-                        std=np.array([58.395, 57.12, 57.375]),
-                        to_bgr=True).astype(np.uint8).copy()
-                    
-                    device = outputs['pred_smpl_kp3d'].device
-                    gt_2d = (coord)
-                    # import ipdb;ipdb.set_trace()
-                    
-                    img = mmcv.imshow_bboxes(img,bbox[0,None].int().cpu().numpy(),show=False)
-                    gt_2d[:,:,0] /= (img_shape[:, 1:] / (bbox[:, None, 2] - bbox[:, None, 0]))
-                    gt_2d[:,:,1] /= (img_shape[:, :1] / (bbox[:, None, 3] - bbox[:, None, 1]))
-                    gt_2d_ori = gt_2d.clone()
-                    gt_2d_ori[:,:,0] += (bbox[:, None, 0] / img_shape[:, 1:])
-                    gt_2d_ori[:,:,1] += (bbox[:, None, 1] / img_shape[:, :1])
-                    gt_2d = (gt_2d*img_wh[:, None]).cpu().detach().numpy()
-                    gt_2d_ori = (gt_2d_ori*img_wh[:, None]).cpu().detach().numpy()
-                    
-                    # visualize keypoints after translation to bbox and to gt
-                    pred_2d = (coord_pred).clone()
-                    # import ipdb;ipdb.set_trace()
-                    pred_2d[:,:,0] /= (img_shape[:, 1:] / (bbox[:, None, 2] - bbox[:, None, 0]))
-                    pred_2d[:,:,1] /= (img_shape[:, :1] / (bbox[:, None, 3] - bbox[:, None, 1]))
-                    # visualize keypoints begore translation to bbox and to gt
-                    pred_2d_ori = (coord_pred-trans).clone()
-                    pred_2d_ori[:,:,0] /= (img_shape[:, 1:] / (bbox[:, None, 2] - bbox[:, None, 0]))
-                    pred_2d_ori[:,:,1] /= (img_shape[:, :1] / (bbox[:, None, 3] - bbox[:, None, 1]))
-                    pred_2d_ori[:,:,0] += (bbox[:, None, 0] / img_shape[:, 1:])
-                    pred_2d_ori[:,:,1] += (bbox[:, None, 1] / img_shape[:, :1])
-                    pred_2d = (pred_2d*img_wh[:, None]).cpu().detach().numpy()
-                    pred_2d_ori = (pred_2d_ori*img_wh[:, None]).cpu().detach().numpy()
-                    visualize_kp2d(
-                        gt_2d[0].reshape(-1,2)[None], 
-                        output_path='./figs/gt2d%s'%part_name, 
-                        image_array=img.copy()[None], 
-                        # data_source='smplx_137',
-                        disable_limbs = True,
-                        overwrite=True)    
-                    
-                    visualize_kp2d(
-                        gt_2d_ori[0].reshape(-1,2)[None], 
-                        output_path='./figs/gt2d%s_ori'%part_name, 
-                        image_array=img.copy()[None], 
-                        # data_source='smplx_137',
-                        disable_limbs = True,
-                        overwrite=True) 
-                    visualize_kp2d(
-                        pred_2d[0].reshape(-1,2)[None], 
-                        output_path='./figs/pred2d%s'%part_name, 
-                        image_array=img.copy()[None], 
-                        # data_source='smplx_137',
-                        disable_limbs = True,
-                        overwrite=True)    
-                    
-                    visualize_kp2d(
-                        pred_2d_ori[0].reshape(-1,2)[None], 
-                        output_path='./figs/pred2d%s_ori'%part_name, 
-                        image_array=img.copy()[None], 
-                        # data_source='smplx_137',
-                        disable_limbs = True,
-                        overwrite=True)  
-                # import ipdb;ipdb.set_trace()
 
             
         loss_smpl_kp2d_ba = F.l1_loss(pred_smpl_kp2d,
@@ -1616,13 +1109,7 @@ class SetCriterion(nn.Module):
                     box_ops.box_cxcywh_to_xyxy(target_lhand_boxes)))
             loss_lhand_giou = loss_lhand_giou * target_lhand_boxes_conf
             losses['loss_lhand_giou'] = loss_lhand_giou.sum() / num_boxes
-            # import mmcv
-            # import cv2
-            # img = (data_batch['img'][0]*255).permute(1,2,0).int().detach().cpu().numpy()
-            # pred_bbox = (box_ops.box_cxcywh_to_xyxy(src_lhand_boxes[0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            # pred_bbox = (box_ops.box_cxcywh_to_xyxy(src_lhand_boxes[0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-            # img = mmcv.imshow_bboxes(img.copy(), pred_bbox, show=False)
-            # cv2.imwrite('test.png',img)
+           
         
         if 'pred_rhand_boxes' in outputs and face_hand_box:
             src_rhand_boxes = outputs['pred_rhand_boxes'][idx]
@@ -2378,13 +1865,7 @@ class SetCriterion_Box(nn.Module):
         face_idx = smpl_x.joint_part['face']
         lhand_idx = smpl_x.joint_part['lhand']
         rhand_idx = smpl_x.joint_part['rhand']
-        
-        # visualize_kp3d(targets_smpl_kp3d.detach().cpu().numpy(),
-        #                             output_path='./figs/gt3d',
-        #                             data_source='smplx_137')  
-        # visualize_kp3d(pred_smpl_kp3d.detach().cpu().numpy(),
-        #                             output_path='./figs/pred3d',
-        #                             data_source='smplx_137')
+       
         # currently, only mpi_inf_3dhp and h36m have 3d keypoints
         # both datasets have right_hip_extra and left_hip_extra
         loss_smpl_kp3d = F.l1_loss(pred_smpl_kp3d,
@@ -2563,27 +2044,9 @@ class SetCriterion_Box(nn.Module):
 
 
         pred_cam = outputs['pred_smpl_cam'][idx].float()
-        # pdb.set_trace()
-
-        # max_img_res = orig_img_res.max(-1)[0]
-        # torch.cat([ torch.Tensor([orig_img_res[0]]*9), torch.Tensor([orig_img_res[1]]*9)], 0)
-        # torch.cat([orig_img_res[i][None].repeat(num,1) for i, num in enumerate(instance_num)], 0)
-
-        # orig_img_res = torch.Tensor([t['orig_size'] for t, (_, i) in zip(targets, indices)]).type_as(pred_smpl_kp3d)
-        # orig_img_res = torch.Tensor([target['orig_size'] for target in targets]).type_as(pred_smpl_kp3d)
-        # max_img_res = torch.cat([torch.full_like(src, i) for i, (src, _) in zip(max_img_res, indices)]).type_as(pred_smpl_kp3d)
-
+       
         targets_kp2d = torch.cat([t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)], dim=0)
-        # losses = {}
-        # if valid_num == 0:
-        #     losses['loss_smpl_body_kp2d'] = torch.Tensor([0])[0].type_as(targets_kp2d)
-
-        #     losses['loss_smpl_lhand_kp2d'] = torch.Tensor([0])[0].type_as(targets_kp2d)
         
-        #     losses['loss_smpl_rhand_kp2d'] = torch.Tensor([0])[0].type_as(targets_kp2d)
-        
-        #     losses['loss_smpl_face_kp2d'] = torch.Tensor([0])[0].type_as(targets_kp2d)
-        #     return losses
         keypoints2d_conf =  targets_kp2d[:,:,2:].clone()
         targets_kp2d = targets_kp2d[:,:,:2]
 

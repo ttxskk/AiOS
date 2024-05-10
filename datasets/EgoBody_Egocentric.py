@@ -156,48 +156,7 @@ class EgoBody_Egocentric(HumanDataset):
                 new_line = [ann_idx[n], img_path[n], eval_result['mpvpe_all'][-1], eval_result['pa_mpvpe_all'][-1]]
                 writer.writerow(new_line)
                 # self.save_idx += 1
-            vis = False
-            if vis:
-                import mmcv
-                img = (out['img']).transpose(0,2,3,1)
-                img = mmcv.imdenormalize(
-                    img=img[0], 
-                    mean=np.array([123.675, 116.28, 103.53]), 
-                    std=np.array([58.395, 57.12, 57.375]),
-                    to_bgr=True).astype(np.uint8)
-                from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                import ipdb;ipdb.set_trace()
-                visualize_kp2d(
-                    out['smplx_joint_proj'][0][None],
-                    image_array=img[None].copy(),
-                    disable_limbs=True,
-                    overwrite=True,
-                    output_path='./figs/pred2d'
-                )
-                from pytorch3d.io import save_obj
-                save_obj('temp.obj',verts=out['smplx_mesh_cam'][0],faces=torch.tensor([]))
-            # MPVPE from face vertices
-            mesh_gt_face = mesh_gt[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face = mesh_out[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face_align = \
-                mesh_out_face - \
-                np.dot(smpl_x.J_regressor, mesh_out).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :] + \
-                np.dot(smpl_x.J_regressor, mesh_gt).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :]
-            eval_result['mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
-            mesh_out_face_align = rigid_align_batch(mesh_out_face, mesh_gt_face)
-            eval_result['pa_mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
             
-        # for k,v in eval_result.items():
-        #     if k != 'img_path' and k != 'ann_idx':
-        #         # import ipdb;ipdb.set_trace()
-        #         if len(v)>1:
-        #             eval_result[k] = np.concatenate(v,axis=0)
-        #         else:
-        #             eval_result[k] = np.array(v)
 
         return eval_result
 

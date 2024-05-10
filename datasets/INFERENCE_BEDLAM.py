@@ -36,7 +36,8 @@ class INFERENCE_BEDLAM(torch.utils.data.Dataset):
         self.img_dir = os.path.join(img_dir,'**/*.png')
         self.out_path = out_path
         self.img_paths = sorted(glob(self.img_dir,recursive=True)) 
-        
+        assert not os.path.exists(os.path.join(self.out_path,'predictions')), "Predictions path already exists: {}".format(self.out_path)
+
         self.score_threshold = 0.85
         self.resolution = [720,1280] # AGORA test     
         self.format = DefaultFormatBundle()
@@ -159,85 +160,6 @@ class INFERENCE_BEDLAM(torch.utils.data.Dataset):
                 os.makedirs(osp.join(self.out_path, 'predictions'), exist_ok=True)
                 with open(osp.join(self.out_path, 'predictions', save_name),'wb') as f:
                     pickle.dump(save_dict, f)
-            # mesh
-            # bbox
-
             
-            # if i == 0:
-            #     save_name = img_paths[ann_idx].split('/')[-1][:-4]
-            #     cv2.imwrite(osp.join(self.out_path, 'failed', save_name + '.png'), img)
-            # else:
-            #     # dump bbox
-            #     body_xywh = xyxy2xywh(body_bbox[:i])
-            #     score = scores[:i]
-            #     out_value = [{'bbox': b, 'score': s} for b, s in zip(body_xywh, score)]
-            #     out_key = img_paths[ann_idx].split('/')[-1]
-            #     output.update({out_key: out_value})
-                
-            #     # show bbox 
-            #     img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
-            #     img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
-            #     img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
-            #     img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
-            #     # img = visualize_kp2d(
-            #     #     joint_proj[:i][None], 
-            #     #     image_array=img.copy()[None], 
-            #     #     data_source='smplx',
-            #     #     return_array=True)
-            #     # cv2.imwrite(osp.join(self.out_path, 'vis', save_name + '.png'), img[0])
-
-            #     # downsample_mat = pickle.load(open('data/body_models/smplx2smpl.pkl', 'rb'))['matrix']
-            #     # downsample_mat = torch.tensor(downsample_mat[None], dtype=torch.float).to('cuda')
-            #     verts = out['smpl_verts'][:i] + out['cam_trans'][:i][:, None]
-                
-            #     # verts_smpl = torch.matmul(downsample_mat[None], verts)
-                
-            #     # inds = list(range(0,24))
-            #     # inds.extend([27])
-            #     # verts = verts[inds]
-            #     body_model_cfg = dict(
-            #         type='smplx',
-            #         keypoint_src='smplx',
-            #         num_expression_coeffs=10,
-            #         num_betas=10,
-            #         gender='neutral',
-            #         keypoint_dst='smplx_137',
-            #         model_path='/mnt/AFS_Zoetrope/share_data/body_models/smplx',
-            #         use_pca=False,
-            #         use_face_contour=True)
-            #     body_model = build_body_model(body_model_cfg).to('cuda')
-            #     # for n, v in enumerate(verts):
-            #     #     save_obj(
-            #     #         osp.join(self.out_path, 'vis', img_paths[ann_idx].split('/')[-1].rjust(5+4,'0')).replace('.png',f'_{n}_.obj'),
-            #     #         verts = v,
-            #     #         faces=torch.tensor(body_model.faces.astype(np.int32))
-            #     #     )
-            #     # print(osp.join(self.out_path, 'vis', img_paths[ann_idx].split('/')[-1]))
-            #     render_smpl(
-            #         verts=verts[None],
-            #         body_model=body_model,
-            #         # K= np.array(
-            #         #     [[img_shape[0]/2, 0, img_shape[0]/2],
-            #         #      [0, img_shape[0]/2, img_shape[1]/2],
-            #         #      [0, 0, 1]]),
-            #         K= np.array(
-            #             [[5000, 0, img_shape[0]/2],
-            #              [0, 5000, img_shape[1]/2],
-            #              [0, 0, 1]]),
-            #         R=None,
-            #         T=None,
-            #         # output_path=osp.join(self.out_path, 'vis', img_paths[ann_idx].split('/')[-1].rjust(5+4,'0')),
-            #         output_path=osp.join(self.out_path, 'vis', img_paths[ann_idx].split('/')[-1].rjust(5+4,'0')),
-            #         image_array=cv2.resize(img, (img_shape[0],img_shape[1]), cv2.INTER_CUBIC),
-            #         in_ndc=False,
-            #         alpha=0.9,
-            #         convention='opencv',
-            #         projection='perspective',
-            #         overwrite=True,
-            #         no_grad=True,
-            #         device='cuda',
-            #         resolution=[img_shape[0],img_shape[1]],
-            #         render_choice='hq',    
-            #     )
         return output
 

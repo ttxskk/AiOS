@@ -46,7 +46,9 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
 
         
         self.out_path =  out_path # cfg.exp_name
-        os.makedirs(self.out_path, exist_ok=True)
+        assert not os.path.exists(os.path.join(self.out_path,'predictions')), "Predictions path already exists: {}".format(self.out_path)
+
+    
         if self.img_dir.split('/')[-1] == 'test':
             self.score_threshold = 0.3
         elif self.img_dir.split('/')[-1] == 'validation':
