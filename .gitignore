@@ -109,7 +109,7 @@ venv.bak/
 
 # custom
 logs/
-data/
+!detrsmpl/data
 !mmhuman3d/data
 !osx/data
 # data for pytest moved to http server

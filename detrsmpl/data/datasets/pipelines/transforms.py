@@ -1,0 +1,1284 @@
+import math
+import random
+from collections import Iterable
+
+import cv2
+import mmcv
+import numpy as np
+
+from detrsmpl.utils.demo_utils import xywh2xyxy, xyxy2xywh
+from detrsmpl.core.conventions.keypoints_mapping import get_flip_pairs
+from detrsmpl.utils.transforms import aa_to_rotmat, rotmat_to_aa
+from ..builder import PIPELINES
+from .compose import Compose
+
+
+def get_affine_transform(center,
+                         scale,
+                         rot,
+                         output_size,
+                         shift=(0., 0.),
+                         inv=False,
+                         pixel_std=1.0):
+    """Get the affine transform matrix, given the center/scale/rot/output_size.
+
+    Args:
+        center (np.ndarray[2, ]): Center of the bounding box (x, y).
+        scale (np.ndarray[2, ]): Scale of the bounding box
+            wrt [width, height].
+        rot (float): Rotation angle (degree).
+        output_size (np.ndarray[2, ] | list(2,)): Size of the
+            destination heatmaps.
+        shift (0-100%): Shift translation ratio wrt the width/height.
+            Default (0., 0.).
+        inv (bool): Option to inverse the affine transform direction.
+            (inv=False: src->dst or inv=True: dst->src)
+    Returns:
+        np.ndarray: The transform matrix.
+    """
+    assert len(center) == 2
+    assert len(scale) == 2
+    assert len(output_size) == 2
+    assert len(shift) == 2
+
+    scale_tmp = scale * pixel_std
+
+    shift = np.array(shift)
+    src_h = scale_tmp[1]
+    dst_w = output_size[0]
+    dst_h = output_size[1]
+
+    rot_rad = np.pi * rot / 180
+    src_dir = rotate_point([0., src_h * -0.5], rot_rad)
+    dst_dir = np.array([0., dst_h * -0.5])
+
+    src = np.zeros((3, 2), dtype=np.float32)
+    src[0, :] = center + scale_tmp * shift
+    src[1, :] = center + src_dir + scale_tmp * shift
+    src[2, :] = _get_3rd_point(src[0, :], src[1, :])
+
+    dst = np.zeros((3, 2), dtype=np.float32)
+    dst[0, :] = [dst_w * 0.5, dst_h * 0.5]
+    dst[1, :] = np.array([dst_w * 0.5, dst_h * 0.5]) + dst_dir
+    dst[2, :] = _get_3rd_point(dst[0, :], dst[1, :])
+
+    if inv:
+        trans = cv2.getAffineTransform(np.float32(dst), np.float32(src))
+    else:
+        trans = cv2.getAffineTransform(np.float32(src), np.float32(dst))
+
+    return trans
+
+
+def affine_transform(pt, trans_mat):
+    """Apply an affine transformation to the points.
+
+    Args:
+        pt (np.ndarray): a 2 dimensional point to be transformed
+        trans_mat (np.ndarray): 2x3 matrix of an affine transform
+    Returns:
+        np.ndarray: Transformed points.
+    """
+    if pt.ndim == 2:
+        new_pt = np.einsum('ij,mj->im', pt, trans_mat)
+    elif pt.ndim == 3:
+        new_pt = np.einsum('nij,mj->nim', pt, trans_mat)
+    else:
+        msg = f'Expected pt to have ndim of 2 or 3, but get {pt.ndim} '
+        raise ValueError(msg)
+    # new_pt = np.array(trans_mat) @ np.array([pt[0], pt[1], 1.])
+
+    return new_pt
+
+
+def _get_3rd_point(a, b):
+    """To calculate the affine matrix, three pairs of points are required. This
+    function is used to get the 3rd point, given 2D points a & b.
+
+    The 3rd point is defined by rotating vector `a - b` by 90 degrees
+    anticlockwise, using b as the rotation center.
+    Args:
+        a (np.ndarray): point(x,y)
+        b (np.ndarray): point(x,y)
+    Returns:
+        np.ndarray: The 3rd point.
+    """
+    assert len(a) == 2
+    assert len(b) == 2
+    direction = a - b
+    third_pt = b + np.array([-direction[1], direction[0]], dtype=np.float32)
+
+    return third_pt
+
+
+def rotate_point(pt, angle_rad):
+    """Rotate a point by an angle.
+
+    Args:
+        pt (list[float]): 2 dimensional point to be rotated
+        angle_rad (float): rotation angle by radian
+    Returns:
+        list[float]: Rotated point.
+    """
+    assert len(pt) == 2
+    sn, cs = np.sin(angle_rad), np.cos(angle_rad)
+    new_x = pt[0] * cs - pt[1] * sn
+    new_y = pt[0] * sn + pt[1] * cs
+    rotated_pt = [new_x, new_y]
+
+    return rotated_pt
+
+
+def get_warp_matrix(theta, size_input, size_dst, size_target):
+    """Calculate the transformation matrix under the constraint of unbiased.
+
+    Paper ref: Huang et al. The Devil is in the Details: Delving into Unbiased
+    Data Processing for Human Pose Estimation (CVPR 2020).
+    Args:
+        theta (float): Rotation angle in degrees.
+        size_input (np.ndarray): Size of input image [w, h].
+        size_dst (np.ndarray): Size of output image [w, h].
+        size_target (np.ndarray): Size of ROI in input plane [w, h].
+    Returns:
+        matrix (np.ndarray): A matrix for transformation.
+    """
+    theta = np.deg2rad(theta)
+    matrix = np.zeros((2, 3), dtype=np.float32)
+    scale_x = size_dst[0] / size_target[0]
+    scale_y = size_dst[1] / size_target[1]
+    matrix[0, 0] = math.cos(theta) * scale_x
+    matrix[0, 1] = -math.sin(theta) * scale_x
+    matrix[0, 2] = scale_x * (-0.5 * size_input[0] * math.cos(theta) +
+                              0.5 * size_input[1] * math.sin(theta) +
+                              0.5 * size_target[0])
+    matrix[1, 0] = math.sin(theta) * scale_y
+    matrix[1, 1] = math.cos(theta) * scale_y
+    matrix[1, 2] = scale_y * (-0.5 * size_input[0] * math.sin(theta) -
+                              0.5 * size_input[1] * math.cos(theta) +
+                              0.5 * size_target[1])
+    return matrix
+
+
+def warp_affine_joints(joints, mat):
+    """Apply affine transformation defined by the transform matrix on the
+    joints.
+
+    Args:
+        joints (np.ndarray[..., 2]): Origin coordinate of joints.
+        mat (np.ndarray[3, 2]): The affine matrix.
+    Returns:
+        matrix (np.ndarray[..., 2]): Result coordinate of joints.
+    """
+    joints = np.array(joints)
+    shape = joints.shape
+    joints = joints.reshape(-1, 2)
+    return np.dot(np.concatenate((joints, joints[:, 0:1] * 0 + 1), axis=1),
+                  mat.T).reshape(shape)
+
+
+def _construct_rotation_matrix(rot, size=3):
+    """Construct the in-plane rotation matrix.
+
+    Args:
+        rot (float): Rotation angle (degree).
+        size (int): The size of the rotation matrix.
+            Candidate Values: 2, 3. Defaults to 3.
+    Returns:
+        rot_mat (np.ndarray([size, size]): Rotation matrix.
+    """
+    rot_mat = np.eye(size, dtype=np.float32)
+    if rot != 0:
+        rot_rad = np.deg2rad(rot)
+        sn, cs = np.sin(rot_rad), np.cos(rot_rad)
+        rot_mat[0, :2] = [cs, -sn]
+        rot_mat[1, :2] = [sn, cs]
+
+    return rot_mat
+
+
+def _flip_smpl_pose(pose):
+    """Flip SMPL pose parameters horizontally.
+
+    Args:
+        pose (np.ndarray([72])): SMPL pose parameters
+    Returns:
+        pose_flipped
+    """
+
+    flippedParts = [
+        0, 1, 2, 6, 7, 8, 3, 4, 5, 9, 10, 11, 15, 16, 17, 12, 13, 14, 18, 19,
+        20, 24, 25, 26, 21, 22, 23, 27, 28, 29, 33, 34, 35, 30, 31, 32, 36, 37,
+        38, 42, 43, 44, 39, 40, 41, 45, 46, 47, 51, 52, 53, 48, 49, 50, 57, 58,
+        59, 54, 55, 56, 63, 64, 65, 60, 61, 62, 69, 70, 71, 66, 67, 68
+    ]
+    pose_flipped = pose[..., flippedParts]
+    # Negate the second and the third dimension of the axis-angle
+    pose_flipped[..., 1::3] = -pose_flipped[..., 1::3]
+    pose_flipped[..., 2::3] = -pose_flipped[..., 2::3]
+    return pose_flipped
+
+
+def _flip_smplx_pose(pose):
+    """Flip SMPLX pose parameters horizontally.
+
+    Args:
+        pose (np.ndarray([63])): SMPLX pose parameters
+    Returns:
+        pose_flipped (np.ndarray([21,3]))
+    """
+    flippedParts = np.array([
+        6, 7, 8, 3, 4, 5, 9, 10, 11, 15, 16, 17, 12, 13, 14, 18, 19, 20, 24,
+        25, 26, 21, 22, 23, 27, 28, 29, 33, 34, 35, 30, 31, 32, 36, 37, 38, 42,
+        43, 44, 39, 40, 41, 45, 46, 47, 51, 52, 53, 48, 49, 50, 57, 58, 59, 54,
+        55, 56, 63, 64, 65, 60, 61, 62
+    ],
+                            dtype=np.int32) - 3
+    dim_flip = np.array([1, -1, -1], dtype=pose.dtype)
+    pose = (pose[..., flippedParts].reshape(-1, 21, 3) * dim_flip).copy()
+    return pose
+
+
+def _flip_axis_angle(r):
+    """Flip axis_angle horizontally.
+
+    Args:
+        r (np.ndarray([3]))
+    Returns:
+        f_flipped
+    """
+    dim_flip = np.array([1, -1, -1], dtype=r.dtype)
+    r = r * dim_flip
+    return r
+
+
+def _flip_hand_pose(r_pose, l_pose):
+    dim_flip = np.array([1, -1, -1], dtype=r_pose.dtype)
+    ret_l_pose = r_pose * dim_flip
+    ret_r_pose = l_pose * dim_flip
+    return ret_r_pose, ret_l_pose
+
+
+def _flip_keypoints(keypoints, flip_pairs, img_width=None):
+    """Flip human joints horizontally.
+
+    Note:
+        num_keypoints: K
+        num_dimension: D
+    Args:
+        keypoints (np.ndarray([K, D])): Coordinates of keypoints.
+        flip_pairs (list[tuple()]): Pairs of keypoints which are mirrored
+            (for example, left ear -- right ear).
+        img_width (int | None, optional): The width of the original image.
+            To flip 2D keypoints, image width is needed. To flip 3D keypoints,
+            we simply negate the value of x-axis. Default: None.
+    Returns:
+        keypoints_flipped
+    """
+
+    keypoints_flipped = keypoints.copy()
+
+    # Swap left-right parts
+    for left, right in flip_pairs:
+        keypoints_flipped[..., left, :] = keypoints[..., right, :]
+        keypoints_flipped[..., right, :] = keypoints[..., left, :]
+
+    # Flip horizontally
+    if img_width is None:
+        keypoints_flipped[..., 0] = -keypoints_flipped[..., 0]
+    else:
+        keypoints_flipped[..., 0] = img_width - 1 - keypoints_flipped[..., 0]
+
+    return keypoints_flipped
+
+
+def _rotate_joints_3d(joints_3d, rot):
+    """Rotate the 3D joints in the local coordinates.
+
+    Notes:
+        Joints number: K
+    Args:
+        joints_3d (np.ndarray([K, 3])): Coordinates of keypoints.
+        rot (float): Rotation angle (degree).
+    Returns:
+        joints_3d_rotated
+    """
+    # in-plane rotation
+    # 3D joints are rotated counterclockwise,
+    # so the rot angle is inversed.
+    rot_mat = _construct_rotation_matrix(-rot, 3)
+    if joints_3d.ndim == 2:
+        joints_3d_rotated = np.einsum('ij,kj->ki', rot_mat, joints_3d)
+    elif joints_3d.ndim == 3:
+        joints_3d_rotated = np.einsum('ij,mkj->mki', rot_mat, joints_3d)
+    else:
+        msg = 'Expected joints_3d to have ndim of 2 or 3, '
+        f'but get {joints_3d.ndim}.'
+        raise ValueError(msg)
+    joints_3d_rotated = joints_3d_rotated.astype('float32')
+    return joints_3d_rotated
+
+
+def _rotate_smpl_pose(pose, rot):
+    """Rotate SMPL pose parameters.
+
+    SMPL (https://smpl.is.tue.mpg.de/) is a 3D
+    human model.
+    Args:
+        pose (np.ndarray([72])): SMPL pose parameters
+        rot (float): Rotation angle (degree).
+    Returns:
+        pose_rotated
+    """
+    pose_rotated = pose.copy()
+    if rot != 0:
+        # rot_mat = _construct_rotation_matrix(-rot)
+        # orient = pose[:3]
+        # # find the rotation of the body in camera frame
+        # per_rdg, _ = cv2.Rodrigues(orient.astype(np.float32))
+        # # apply the global rotation to the global orientation
+        # res_rot, _ = cv2.Rodrigues(np.dot(rot_mat, per_rdg))
+        # pose_rotated[:3] = (res_rot.T)[0]
+
+        # use pytorch3d
+        rot_mat = _construct_rotation_matrix(-rot)
+        orient = pose[..., :3]
+        per_rdg = aa_to_rotmat(orient)
+
+        if pose.ndim == 1:
+            tmp_rot = np.einsum('ij,jk->ik', rot_mat, per_rdg)
+        elif pose.ndim == 2:
+            tmp_rot = np.einsum('ij,mjk->mik', rot_mat, per_rdg)
+        else:
+            msg = f'Expected pose to have ndim of 2 or 3, but get {pose.ndim} '
+            raise ValueError(msg)
+
+        res_rot = rotmat_to_aa(tmp_rot)
+        pose_rotated[..., :3] = res_rot
+
+        # use cv2
+        # rot_mat = _construct_rotation_matrix(-rot)
+        # for i in range(pose.shape[0]):
+        #     orient = pose[i, :3]
+        #     # find the rotation of the body in camera frame
+        #     per_rdg, _ = cv2.Rodrigues(orient.astype(np.float32))
+        #     # apply the global rotation to the global orientation
+        #     res_rot, _ = cv2.Rodrigues(np.dot(rot_mat, per_rdg))
+        #     pose_rotated[i, :3] = (res_rot.T)[0]
+
+    return pose_rotated
+
+
+def _bbox_flip(bboxes, img_shape, direction):
+    """Flip bboxes horizontally.
+
+    Args:
+        bboxes (numpy.ndarray): Bounding boxes, shape (..., 4*k)
+        img_shape (tuple[int]): Image shape (height, width)
+        direction (str): Flip direction. Options are 'horizontal',
+            'vertical'.
+
+    Returns:
+        numpy.ndarray: Flipped bounding boxes.
+    """
+
+    assert bboxes.shape[-1] % 5 == 0
+    flipped = bboxes.copy()
+    if direction == 'horizontal':
+        w = img_shape[1]
+        flipped[..., 0::4] = w - bboxes[..., 2::4]
+        flipped[..., 2::4] = w - bboxes[..., 0::4]
+    elif direction == 'vertical':
+        h = img_shape[0]
+        flipped[..., 1::4] = h - bboxes[..., 3::4]
+        flipped[..., 3::4] = h - bboxes[..., 1::4]
+    elif direction == 'diagonal':
+        w = img_shape[1]
+        h = img_shape[0]
+        flipped[..., 0::4] = w - bboxes[..., 2::4]
+        flipped[..., 1::4] = h - bboxes[..., 3::4]
+        flipped[..., 2::4] = w - bboxes[..., 0::4]
+        flipped[..., 3::4] = h - bboxes[..., 1::4]
+    else:
+        raise ValueError(f"Invalid flipping direction '{direction}'")
+    return flipped
+
+
+@PIPELINES.register_module()
+class RandomHorizontalFlip(object):
+    """Flip the image randomly.
+
+    Flip the image randomly based on flip probaility.
+
+    Args:
+        flip_prob (float): probability of the image being flipped. Default: 0.5
+    """
+    def __init__(self, flip_prob=0.5, convention=None):
+        assert 0 <= flip_prob <= 1
+        self.flip_prob = flip_prob
+        self.flip_pairs = get_flip_pairs(convention)
+
+    def __call__(self, results):
+        """Call function to flip image and annotations.
+
+        Args:
+            results (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Flipped results, 'flip' key is added into
+                result dict.
+        """
+        if np.random.rand() > self.flip_prob:
+            results['is_flipped'] = np.array([0])
+            return results
+
+        results['is_flipped'] = np.array([1])
+
+        # flip image
+        for key in results.get('img_fields', ['img']):
+            results[key] = mmcv.imflip(results[key], direction='horizontal')
+
+        # flip keypoints2d
+        if 'keypoints2d' in results:
+            assert self.flip_pairs is not None
+            width = results['img'][:, ::-1, :].shape[1]
+            keypoints2d = results['keypoints2d'].copy()
+            keypoints2d = _flip_keypoints(keypoints2d, self.flip_pairs, width)
+            results['keypoints2d'] = keypoints2d
+        elif 'keypoints2d_ori' in results:
+            assert self.flip_pairs is not None
+            width = results['img'][:, ::-1, :].shape[1]
+            keypoints2d = results['keypoints2d_ori'].copy()
+            keypoints2d = _flip_keypoints(keypoints2d, self.flip_pairs, width)
+            results['keypoints2d_ori'] = keypoints2d
+
+        if 'keypoints2d_smpl' in results:
+            assert self.flip_pairs is not None
+            width = results['img'][:, ::-1, :].shape[1]
+            keypoints2d = results['keypoints2d_smpl'].copy()
+            keypoints2d = _flip_keypoints(keypoints2d, self.flip_pairs, width)
+            results['keypoints2d_smpl'] = keypoints2d
+
+        # flip bbox center
+        center = results['center']
+        center[..., 0] = width - 1 - center[..., 0]
+        results['center'] = center
+
+        # flip keypoints3d
+        if 'keypoints3d' in results:
+            assert self.flip_pairs is not None
+            keypoints3d = results['keypoints3d'].copy()
+            keypoints3d = _flip_keypoints(keypoints3d, self.flip_pairs)
+            results['keypoints3d'] = keypoints3d
+        elif 'keypoints3d_ori' in results:
+            assert self.flip_pairs is not None
+            keypoints3d = results['keypoints3d_ori'].copy()
+            keypoints3d = _flip_keypoints(keypoints3d, self.flip_pairs)
+            results['keypoints3d_ori'] = keypoints3d
+
+        if 'keypoints3d_smpl' in results:
+            assert self.flip_pairs is not None
+            keypoints3d = results['keypoints3d_smpl'].copy()
+            keypoints3d = _flip_keypoints(keypoints3d, self.flip_pairs)
+            results['keypoints3d_smpl'] = keypoints3d
+
+        if 'bbox_xywh' in results:
+            width = results['img'].shape[1]
+            bbox_xywh = results['bbox_xywh'].copy()
+            bbox_xyxy = xywh2xyxy(bbox_xywh)
+
+            bbox_xyxy = bbox_xyxy[:, [2, 1, 0, 3]] * np.array(
+                [-1, 1, -1, 1]) + np.array([width, 0, width, 0])
+
+            # img = mmcv.imshow_bboxes(results['img'], bbox_xyxy, show=False)
+            # cv2.imwrite('test.png',img)
+            results['bbox_xywh'] = xyxy2xywh(bbox_xyxy)
+
+        # flip smpl
+        if 'smpl_body_pose' in results:
+            global_orient = results['smpl_global_orient'].copy()
+            body_pose = results['smpl_body_pose'].copy().reshape((-1, 23 * 3))
+            smpl_pose = np.concatenate((global_orient, body_pose), axis=-1)
+            smpl_pose_flipped = _flip_smpl_pose(smpl_pose)
+            global_orient = smpl_pose_flipped[..., :3]
+            body_pose = smpl_pose_flipped[..., 3:]
+            results['smpl_global_orient'] = global_orient
+            results['smpl_body_pose'] = body_pose.reshape((-1, 23, 3))
+
+        # TODO: to check multi-human for smplx
+        if 'smplx_body_pose' in results:
+
+            body_pose = results['smplx_body_pose'].copy().reshape((-1))
+            body_pose_flipped = _flip_smplx_pose(body_pose)
+            results['smplx_body_pose'] = body_pose_flipped
+
+        if 'smplx_global_orient' in results:
+            global_orient = results['smplx_global_orient'].copy().reshape((-1))
+            global_orient_flipped = _flip_axis_angle(global_orient)
+            results['smplx_global_orient'] = global_orient_flipped
+
+        if 'smplx_jaw_pose' in results:
+            jaw_pose = results['smplx_jaw_pose'].copy().reshape((-1))
+            jaw_pose_flipped = _flip_axis_angle(jaw_pose)
+            results['smplx_jaw_pose'] = jaw_pose_flipped
+
+        if 'smplx_right_hand_pose' in results:
+            right_hand_pose = results['smplx_right_hand_pose'].copy()
+            left_hand_pose = results['smplx_left_hand_pose'].copy()
+            results['smplx_right_hand_pose'], results[
+                'smplx_left_hand_pose'] = _flip_hand_pose(
+                    right_hand_pose, left_hand_pose)
+
+        # Expressions are not symmetric. Remove them when flipped.
+        if 'smplx_expression' in results:
+            results['smplx_expression'] = np.zeros(
+                (results['smplx_expression'].shape[0]), dtype=np.float32)
+            results['has_smplx_expression'] = 0
+
+        return results
+
+    def __repr__(self):
+        return self.__class__.__name__ + f'(flip_prob={self.flip_prob})'
+
+
+def resize(ori_shape, size, max_size=None):
+    # size can be min_size (scalar) or (w, h) tuple
+    # import ipdb; ipdb.set_trace(context=15)
+    def get_size_with_aspect_ratio(image_size, size, max_size=None):
+        w, h = image_size
+        if max_size is not None:
+            min_original_size = float(min((w, h)))
+            max_original_size = float(max((w, h)))
+            if max_original_size / min_original_size * size > max_size:
+                size = int(
+                    round(max_size * min_original_size / max_original_size))
+
+        if (w <= h and w == size) or (h <= w and h == size):
+            return (w, h)
+
+        if w < h:
+            ow = size
+            oh = int(size * h / w)
+        else:
+            oh = size
+            ow = int(size * w / h)
+
+        return (ow, oh)
+
+    def get_size(ori_shape, size, max_size=None):
+        if isinstance(size, (list, tuple)):
+            return size[::-1]
+        else:
+            return get_size_with_aspect_ratio(ori_shape, size, max_size)
+
+    size = get_size(ori_shape, size, max_size)
+
+    return size
+
+
+@PIPELINES.register_module()
+class CenterCrop(object):
+    r"""Center crop the image.
+
+    Args:
+        crop_size (int | tuple): Expected size after cropping with the format
+            of (h, w).
+        efficientnet_style (bool): Whether to use efficientnet style center
+            crop. Defaults to False.
+        crop_padding (int): The crop padding parameter in efficientnet style
+            center crop. Only valid if efficientnet style is True. Defaults to
+            32.
+        interpolation (str): Interpolation method, accepted values are
+            'nearest', 'bilinear', 'bicubic', 'area', 'lanczos'. Only valid if
+             efficientnet style is True. Defaults to 'bilinear'.
+        backend (str): The image resize backend type, accpeted values are
+            `cv2` and `pillow`. Only valid if efficientnet style is True.
+            Defaults to `cv2`.
+
+
+    Notes:
+        If the image is smaller than the crop size, return the original image.
+        If efficientnet_style is set to False, the pipeline would be a simple
+        center crop using the crop_size.
+        If efficientnet_style is set to True, the pipeline will be to first to
+        perform the center crop with the crop_size_ as:
+
+        .. math::
+        crop\_size\_ = crop\_size / (crop\_size + crop\_padding) * short\_edge
+
+        And then the pipeline resizes the img to the input crop size.
+    """
+    def __init__(self,
+                 crop_size,
+                 efficientnet_style=False,
+                 crop_padding=32,
+                 interpolation='bilinear',
+                 backend='cv2'):
+        if efficientnet_style:
+            assert isinstance(crop_size, int)
+            assert crop_padding >= 0
+            assert interpolation in ('nearest', 'bilinear', 'bicubic', 'area',
+                                     'lanczos')
+            if backend not in ['cv2', 'pillow']:
+                raise ValueError(
+                    f'backend: {backend} is not supported for '
+                    'resize. Supported backends are "cv2", "pillow"')
+        else:
+            assert isinstance(crop_size, int) or (isinstance(crop_size, tuple)
+                                                  and len(crop_size) == 2)
+        if isinstance(crop_size, int):
+            crop_size = (crop_size, crop_size)
+        assert crop_size[0] > 0 and crop_size[1] > 0
+        self.crop_size = crop_size
+        self.efficientnet_style = efficientnet_style
+        self.crop_padding = crop_padding
+        self.interpolation = interpolation
+        self.backend = backend
+
+    def __call__(self, results):
+        crop_height, crop_width = self.crop_size[0], self.crop_size[1]
+        for key in results.get('img_fields', ['img']):
+            img = results[key]
+            # img.shape has length 2 for grayscale, length 3 for color
+            img_height, img_width = img.shape[:2]
+
+            # https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/preprocessing.py#L118 # noqa
+            if self.efficientnet_style:
+                img_short = min(img_height, img_width)
+                crop_height = crop_height / (crop_height +
+                                             self.crop_padding) * img_short
+                crop_width = crop_width / (crop_width +
+                                           self.crop_padding) * img_short
+
+            y1 = max(0, int(round((img_height - crop_height) / 2.)))
+            x1 = max(0, int(round((img_width - crop_width) / 2.)))
+            y2 = min(img_height, y1 + crop_height) - 1
+            x2 = min(img_width, x1 + crop_width) - 1
+
+            # crop the image
+            img = mmcv.imcrop(img, bboxes=np.array([x1, y1, x2, y2]))
+
+            if self.efficientnet_style:
+                img = mmcv.imresize(img,
+                                    tuple(self.crop_size[::-1]),
+                                    interpolation=self.interpolation,
+                                    backend=self.backend)
+            img_shape = img.shape
+            results[key] = img
+        results['img_shape'] = img_shape
+
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__ + f'(crop_size={self.crop_size}'
+        repr_str += f', efficientnet_style={self.efficientnet_style}'
+        repr_str += f', crop_padding={self.crop_padding}'
+        repr_str += f', interpolation={self.interpolation}'
+        repr_str += f', backend={self.backend})'
+        return repr_str
+
+
+@PIPELINES.register_module()
+class Normalize(object):
+    """Normalize the image.
+
+    Args:
+        mean (sequence): Mean values of 3 channels.
+        std (sequence): Std values of 3 channels.
+        to_rgb (bool): Whether to convert the image from BGR to RGB,
+            default is true.
+    """
+    def __init__(self, mean, std, to_rgb=True):
+        self.mean = np.array(mean, dtype=np.float32)
+        self.std = np.array(std, dtype=np.float32)
+        self.to_rgb = to_rgb
+
+    def __call__(self, results):
+        for key in results.get('img_fields', ['img']):
+            results[key] = mmcv.imnormalize(results[key], self.mean, self.std,
+                                            self.to_rgb)
+        results['img_norm_cfg'] = dict(mean=self.mean,
+                                       std=self.std,
+                                       to_rgb=self.to_rgb)
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(mean={list(self.mean)}, '
+        repr_str += f'std={list(self.std)}, '
+        repr_str += f'to_rgb={self.to_rgb})'
+        return repr_str
+
+
+@PIPELINES.register_module()
+class ColorJitter(object):
+    """Randomly change the brightness, contrast and saturation of an image.
+
+    Args:
+        brightness (float): How much to jitter brightness.
+            brightness_factor is chosen uniformly from
+            [max(0, 1 - brightness), 1 + brightness].
+        contrast (float): How much to jitter contrast.
+            contrast_factor is chosen uniformly from
+            [max(0, 1 - contrast), 1 + contrast].
+        saturation (float): How much to jitter saturation.
+            saturation_factor is chosen uniformly from
+            [max(0, 1 - saturation), 1 + saturation].
+    """
+    def __init__(self, brightness, contrast, saturation):
+        self.brightness = brightness
+        self.contrast = contrast
+        self.saturation = saturation
+
+    def __call__(self, results):
+        brightness_factor = random.uniform(0, self.brightness)
+        contrast_factor = random.uniform(0, self.contrast)
+        saturation_factor = random.uniform(0, self.saturation)
+        color_jitter_transforms = [
+            dict(type='Brightness',
+                 magnitude=brightness_factor,
+                 prob=1.,
+                 random_negative_prob=0.5),
+            dict(type='Contrast',
+                 magnitude=contrast_factor,
+                 prob=1.,
+                 random_negative_prob=0.5),
+            dict(type='ColorTransform',
+                 magnitude=saturation_factor,
+                 prob=1.,
+                 random_negative_prob=0.5)
+        ]
+        random.shuffle(color_jitter_transforms)
+        transform = Compose(color_jitter_transforms)
+        return transform(results)
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(brightness={self.brightness}, '
+        repr_str += f'contrast={self.contrast}, '
+        repr_str += f'saturation={self.saturation})'
+        return repr_str
+
+
+@PIPELINES.register_module()
+class Lighting(object):
+    """Adjust images lighting using AlexNet-style PCA jitter.
+
+    Args:
+        eigval (list): the eigenvalue of the convariance matrix of pixel
+            values, respectively.
+        eigvec (list[list]): the eigenvector of the convariance matrix of pixel
+            values, respectively.
+        alphastd (float): The standard deviation for distribution of alpha.
+            Defaults to 0.1
+        to_rgb (bool): Whether to convert img to rgb.
+    """
+    def __init__(self, eigval, eigvec, alphastd=0.1, to_rgb=True):
+        assert isinstance(eigval, list), \
+            f'eigval must be of type list, got {type(eigval)} instead.'
+        assert isinstance(eigvec, list), \
+            f'eigvec must be of type list, got {type(eigvec)} instead.'
+        for vec in eigvec:
+            assert isinstance(vec, list) and len(vec) == len(eigvec[0]), \
+                'eigvec must contains lists with equal length.'
+        self.eigval = np.array(eigval)
+        self.eigvec = np.array(eigvec)
+        self.alphastd = alphastd
+        self.to_rgb = to_rgb
+
+    def __call__(self, results):
+        for key in results.get('img_fields', ['img']):
+            img = results[key]
+            results[key] = mmcv.adjust_lighting(img,
+                                                self.eigval,
+                                                self.eigvec,
+                                                alphastd=self.alphastd,
+                                                to_rgb=self.to_rgb)
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(eigval={self.eigval.tolist()}, '
+        repr_str += f'eigvec={self.eigvec.tolist()}, '
+        repr_str += f'alphastd={self.alphastd}, '
+        repr_str += f'to_rgb={self.to_rgb})'
+        return repr_str
+
+
+@PIPELINES.register_module()
+class RandomChannelNoise:
+    """Data augmentation with random channel noise.
+
+    Required keys: 'img'
+    Modifies key: 'img'
+    Args:
+        noise_factor (float): Multiply each channel with
+         a factor between``[1-scale_factor, 1+scale_factor]``
+    """
+    def __init__(self, noise_factor=0.4):
+        self.noise_factor = noise_factor
+
+    def __call__(self, results):
+        """Perform data augmentation with random channel noise."""
+        img = results['img']
+
+        # Each channel is multiplied with a number
+        # in the area [1-self.noise_factor, 1+self.noise_factor]
+        pn = np.random.uniform(1 - self.noise_factor, 1 + self.noise_factor,
+                               (1, 3))
+        img = cv2.multiply(img, pn)
+
+        results['img'] = img
+
+        if 'ori_img' in results:
+            img = results['ori_img']
+            img = cv2.multiply(img, pn)
+
+            results['ori_img'] = img
+
+        return results
+
+
+@PIPELINES.register_module()
+class GetRandomScaleRotation:
+    """Data augmentation with random scaling & rotating.
+
+    Required key: 'scale'. Modifies key: 'scale' and 'rotation'.
+    Args:
+        rot_factor (int): Rotating to ``[-2*rot_factor, 2*rot_factor]``.
+        scale_factor (float): Scaling to ``[1-scale_factor, 1+scale_factor]``.
+        rot_prob (float): Probability of random rotation.
+    """
+    def __init__(self, rot_factor=30, scale_factor=0.25, rot_prob=0.6):
+        self.rot_factor = rot_factor
+        self.scale_factor = scale_factor
+        self.rot_prob = rot_prob
+
+    def __call__(self, results):
+        """Perform data augmentation with random scaling & rotating."""
+        s = results['scale']
+
+        sf = self.scale_factor
+        rf = self.rot_factor
+
+        s_factor = np.clip(np.random.randn() * sf + 1, 1 - sf, 1 + sf)
+        s = s * s_factor
+
+        r_factor = np.clip(np.random.randn() * rf, -rf * 2, rf * 2)
+        r = r_factor if np.random.rand() <= self.rot_prob else 0.0
+
+        results['scale'] = s
+        results['rotation'] = r
+
+        return results
+
+
+@PIPELINES.register_module()
+class SampleInstance:
+    def __init__(self, sample_ratio):
+        self.sample_ratio = sample_ratio
+
+    def __call__(self, results):
+        
+
+        assert 'bbox_xywh' in results
+        bbox_xywh = results['bbox_xywh'].copy()
+        crop_person_number = len(bbox_xywh)
+        if random.random() < self.sample_ratio:
+            crop_person_number = np.random.randint(len(bbox_xywh)) + 1
+
+        sample_ids = np.array(
+            random.sample(list(range(len(bbox_xywh))), crop_person_number))
+
+        bbox_xyxy = xywh2xyxy(bbox_xywh)[sample_ids]
+
+        leftTop_ = bbox_xyxy[:, :2]
+        leftTop_ = np.array([np.min(leftTop_[:, 0]), np.min(leftTop_[:, 1])])
+        rightBottom_ = bbox_xyxy[:, 2:4]
+        rightBottom_ = np.array(
+            [np.max(rightBottom_[:, 0]),
+             np.max(rightBottom_[:, 1])])
+        bbox_xyxy = np.concatenate([leftTop_, rightBottom_])
+        results['bbox_xyxy'] = bbox_xyxy
+        center = (rightBottom_ + leftTop_) / 2
+        scale = (rightBottom_ - leftTop_)
+        scale[0] = scale[1] = max(scale)
+        results['center'] = center
+        results['scale'] = scale
+        return results
+
+        
+
+
+@PIPELINES.register_module()
+class MeshAffine:
+    """Affine transform the image to get input image.
+
+    Affine transform the 2D keypoints, 3D kepoints. Required keys: 'img',
+    'pose', 'img_shape', 'rotation' and 'center'. Modifies key: 'img',
+    ''keypoints2d', 'keypoints3d', 'pose'.
+    """
+    def __init__(self, img_res, crop_with_bbox=True):
+        if isinstance(img_res, tuple):
+            self.image_size = img_res
+        else:
+            self.image_size = np.array([img_res, img_res])
+        self.img_res = img_res
+        self.crop_with_bbox = crop_with_bbox
+
+    def __call__(self, results):
+
+        c = results['center']
+        s = results['scale']
+        r = results['rotation']
+
+        trans = get_affine_transform(c, s, r, self.image_size)
+
+        if 'img' in results:
+            img = results['img'].copy()
+
+            # img before affine
+            ori_img = img.copy()
+            results['crop_transform'] = trans
+            results['ori_img'] = ori_img
+            results['img_fields'] = ['img', 'ori_img']
+
+            img = cv2.warpAffine(
+                img,
+                trans, (int(self.image_size[0]), int(self.image_size[1])),
+                flags=cv2.INTER_LINEAR)
+            results['img'] = img
+
+        if 'keypoints2d' in results:
+            keypoints2d = results['keypoints2d'].copy()
+
+            results['keypoints2d'][..., :2] = affine_transform(
+                keypoints2d, trans)
+        if 'bbox_xywh' in results:
+            bbox_xywh = results['bbox_xywh'].copy()
+
+            leftTop = bbox_xywh[..., :2]
+            rightTop = np.concatenate([
+                bbox_xywh[..., [0]] + bbox_xywh[..., [2]], bbox_xywh[..., [1]]
+            ], -1)
+            leftBottom = np.concatenate([
+                bbox_xywh[..., [0]], bbox_xywh[..., [1]] + bbox_xywh[..., [3]]
+            ], -1)
+            rightBottom = np.concatenate([
+                bbox_xywh[..., [0]] + bbox_xywh[..., [2]],
+                bbox_xywh[..., [1]] + bbox_xywh[..., [3]]
+            ], -1)
+
+            bbox_point = np.vstack(
+                [leftTop, rightTop, leftBottom, rightBottom])
+            bbox_point = np.concatenate(
+                [bbox_point, np.ones_like(bbox_point[..., [0]])], -1)
+            bbox_point = affine_transform(bbox_point, trans)
+            # TODO:
+            bbox_point = np.clip(bbox_point, 0, self.img_res)
+            bbox__xywh_t = bbox_point.clone()
+            bbox__xywh_t
+            results['bbox'] = bbox_point
+
+            # bbox_xyxy = xywh2xyxy(bbox_xywh)[:,:4].reshape(-1, 2, 2)
+            # bbox_xyxy = np.concatenate([bbox_xyxy, np.ones_like(bbox_xyxy[...,[0]])], -1)
+            # bbox_xyxy = np.concatenate([affine_transform(bbox_xyxy, trans).reshape(-1,4), bbox_xywh[...,[-1]]],-1)
+            # results['bbox_xywh'] = xyxy2xywh(bbox_xyxy)
+
+            #     image_array=np.array([img]),
+            #     overwrite=True,
+            #     data_source='smpl_54')
+        if 'keypoints3d' in results:
+            keypoints3d = results['keypoints3d'].copy()
+            keypoints3d[..., :3] = _rotate_joints_3d(keypoints3d[..., :3], r)
+            results['keypoints3d'] = keypoints3d
+
+        if 'smpl_body_pose' in results:
+            global_orient = results['smpl_global_orient'].copy()
+            body_pose = results['smpl_body_pose'].copy().reshape((-1, 23 * 3))
+            pose = np.concatenate((global_orient, body_pose), axis=-1)
+            pose = _rotate_smpl_pose(pose, r)
+            results['smpl_global_orient'] = pose[..., :3]
+            results['smpl_body_pose'] = pose[..., 3:].reshape((-1, 23, 3))
+
+        if 'smplx_global_orient' in results:
+            global_orient = results['smplx_global_orient'].copy()
+            global_orient = _rotate_smpl_pose(global_orient, r)
+            results['smplx_global_orient'] = global_orient
+
+        return results
+
+
+@PIPELINES.register_module()
+class MeshAffineED:
+    """Affine transform the image to get input image.
+
+    Affine transform the 2D keypoints, 3D kepoints. Required keys: 'img',
+    'pose', 'img_shape', 'rotation' and 'center'. Modifies key: 'img',
+    ''keypoints2d', 'keypoints3d', 'pose'.
+    """
+    def __init__(self, sizes, max_size=None):
+        assert isinstance(sizes, (list, tuple))
+        self.sizes = sizes
+        self.max_size = max_size
+
+    def __call__(self, results):
+        ori_shape = np.array(results['ori_shape'])
+        # ori_shape = ori_shape[::-1]
+        # print(ori_shape)
+        size = random.choice(self.sizes)
+        reshape_size = resize(ori_shape, size, self.max_size)
+        c = (ori_shape / 2)[::-1]
+        s = ori_shape[::-1]
+        r = results['rotation']
+
+        trans = get_affine_transform(c, s, r, reshape_size[::-1])
+
+        results['img_shape'] = reshape_size
+        if 'img' in results:
+            img = results['img'].copy()
+
+            # img before affine
+            ori_img = img.copy()
+            results['crop_transform'] = trans
+            results['ori_img'] = ori_img
+            results['img_fields'] = ['img', 'ori_img']
+
+            img = cv2.warpAffine(img,
+                                 trans,
+                                 (int(reshape_size[1]), int(reshape_size[0])),
+                                 flags=cv2.INTER_LINEAR)
+            results['img'] = img
+
+        if 'keypoints2d_ori' in results:
+            keypoints2d_ori = results['keypoints2d_ori'].copy()
+
+            results['keypoints2d_ori'][..., :2] = affine_transform(
+                keypoints2d_ori, trans)
+
+        if 'keypoints2d_smpl' in results:
+            keypoints2d_smpl = results['keypoints2d_smpl'].copy()
+
+            results['keypoints2d_smpl'][..., :2] = affine_transform(
+                keypoints2d_smpl, trans)
+
+        if 'bbox_xywh' in results:
+            bbox_xywh = results['bbox_xywh'].copy()
+
+            leftTop = bbox_xywh[..., :2]
+            rightTop = np.concatenate([
+                bbox_xywh[..., [0]] + bbox_xywh[..., [2]], bbox_xywh[..., [1]]
+            ], -1)
+            leftBottom = np.concatenate([
+                bbox_xywh[..., [0]], bbox_xywh[..., [1]] + bbox_xywh[..., [3]]
+            ], -1)
+            rightBottom = np.concatenate([
+                bbox_xywh[..., [0]] + bbox_xywh[..., [2]],
+                bbox_xywh[..., [1]] + bbox_xywh[..., [3]]
+            ], -1)
+
+            bbox_point = np.vstack(
+                [leftTop, rightTop, leftBottom, rightBottom])
+            bbox_point = np.concatenate(
+                [bbox_point, np.ones_like(bbox_point[..., [0]])], -1)
+            bbox_point = affine_transform(bbox_point, trans)
+            # TODO:
+
+            bbox_point = np.clip(bbox_point, 0,
+                                 (int(reshape_size[1]), int(reshape_size[0])))
+            results['bbox'] = bbox_point
+
+            bbox_xyxy_t = bbox_xywh.copy()
+            num_sample = bbox_xywh.shape[0]
+            bbox_xyxy_t[..., :2] = bbox_point[:num_sample, :]
+            bbox_xyxy_t[...,
+                        2:4] = bbox_point[num_sample * 3:num_sample * 4, :]
+
+            results['bbox_xywh'] = xyxy2xywh(bbox_xyxy_t)
+            # bbox_xywh = results['bbox_xywh'].copy()
+            # bbox_xyxy = xywh2xyxy(bbox_xywh)[:,:4].reshape(-1, 2, 2)
+            # bbox_xyxy = np.concatenate([bbox_xyxy, np.ones_like(bbox_xyxy[...,[0]])], -1)
+            # bbox_xyxy = np.concatenate([affine_transform(bbox_xyxy, trans).reshape(-1,4), bbox_xywh[...,[-1]]],-1)
+            # results['bbox_xywh'] = xyxy2xywh(bbox_xyxy)
+
+            #     image_array=np.array([img]),
+            #     overwrite=True,
+            #     data_source='smpl_54')
+        if 'keypoints3d_ori' in results:
+            keypoints3d_ori = results['keypoints3d_ori'].copy()
+            keypoints3d_ori[..., :3] = _rotate_joints_3d(
+                keypoints3d_ori[..., :3], r)
+            results['keypoints3d_ori'] = keypoints3d_ori
+
+        if 'keypoints3d_smpl' in results:
+            keypoints3d_smpl = results['keypoints3d_smpl'].copy()
+            keypoints3d_smpl[..., :3] = _rotate_joints_3d(
+                keypoints3d_smpl[..., :3], r)
+            results['keypoints3d_smpl'] = keypoints3d_smpl
+
+        if 'smpl_body_pose' in results:
+            global_orient = results['smpl_global_orient'].copy()
+            body_pose = results['smpl_body_pose'].copy().reshape((-1, 23 * 3))
+            pose = np.concatenate((global_orient, body_pose), axis=-1)
+            pose = _rotate_smpl_pose(pose, r)
+            results['smpl_global_orient'] = pose[..., :3]
+            results['smpl_body_pose'] = pose[..., 3:].reshape((-1, 23, 3))
+
+        if 'area' in results:
+            area = results['area'] * (trans[0, 0] * trans[1, 1])
+            results['area'] = area
+        # if 'smplx_global_orient' in results:
+        #     global_orient = results['smplx_global_orient'].copy()
+        #     global_orient = _rotate_smpl_pose(global_orient, r)
+        #     results['smplx_global_orient'] = global_orient
+
+        return results
+
+
+@PIPELINES.register_module()
+class Rotation:
+    """Rotate the image with the given rotation.
+
+    Rotate the 2D keypoints, 3D kepoints, poses. Required keys: 'img',
+    'pose', 'rotation' and 'center'. Modifies key: 'img',
+    ''keypoints2d', 'keypoints3d', 'pose'.
+
+    To avoid conflicts with MeshAffine, rotation will be set to 0.0
+    after rotate the image.
+    The rotation value will be stored to 'ori_rotation'.
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self, results):
+        r = results['rotation']
+        if r == 0.0:
+            return results
+        img = results['img']
+
+        # img before affine
+        (h, w) = img.shape[:2]
+        (cX, cY) = (w // 2, h // 2)
+        M = cv2.getRotationMatrix2D((cX, cY), r, 1.0)
+        cos = np.abs(M[0, 0])
+        sin = np.abs(M[0, 1])
+        # compute the new bounding dimensions of the image
+        nW = int((h * sin) + (w * cos))
+        nH = int((h * cos) + (w * sin))
+        # adjust the rotation matrix to take into account translation
+        M[0, 2] += (nW / 2) - cX
+        M[1, 2] += (nH / 2) - cY
+        # perform the actual rotation and return the image
+        img = cv2.warpAffine(img, M, (nW, nH))
+
+        results['img'] = img
+
+        c = results['center']
+        c = np.dot(M[:2, :2], c) + M[:2, 2]
+        results['center'] = c
+
+        if 'keypoints2d' in results:
+            keypoints2d = results['keypoints2d'].copy()
+            keypoints2d[:, :2] = (np.dot(keypoints2d[:, :2], M[:2, :2].T) +
+                                  M[:2, 2] + 1).astype(np.int)
+            results['keypoints2d'] = keypoints2d
+
+        if 'keypoints3d' in results:
+            keypoints3d = results['keypoints3d'].copy()
+            keypoints3d[:, :3] = _rotate_joints_3d(keypoints3d[:, :3], r)
+            results['keypoints3d'] = keypoints3d
+
+        if 'smpl_body_pose' in results:
+            global_orient = results['smpl_global_orient'].copy()
+            body_pose = results['smpl_body_pose'].copy().reshape((-1))
+            pose = np.concatenate((global_orient, body_pose), axis=-1)
+            pose = _rotate_smpl_pose(pose, r)
+            results['smpl_global_orient'] = pose[:3]
+            results['smpl_body_pose'] = pose[3:].reshape((-1, 3))
+
+        if 'smplx_global_orient' in results:
+            global_orient = results['smplx_global_orient'].copy()
+            global_orient = _rotate_smpl_pose(global_orient, r)
+            results['smplx_global_orient'] = global_orient
+
+        results['rotation'] = 0.0
+        results['ori_rotation'] = r
+        return results
+
+
+@PIPELINES.register_module()
+class BBoxCenterJitter(object):
+    def __init__(self, factor=0.0, dist='normal'):
+        super(BBoxCenterJitter, self).__init__()
+        self.factor = factor
+        self.dist = dist
+        assert self.dist in [
+            'normal', 'uniform'
+        ], (f'Distribution must be normal or uniform, not {self.dist}')
+
+    def __call__(self, results):
+        # body model: no process
+        if self.factor <= 1e-3:
+            return results
+
+        bbox_size = results['scale'][0]
+
+        jitter = bbox_size * self.factor
+
+        if self.dist == 'normal':
+            center_jitter = np.random.randn(2) * jitter
+        elif self.dist == 'uniform':
+            center_jitter = np.random.rand(2) * 2 * jitter - jitter
+
+        center = results['center']
+        H, W = results['img_shape']
+        new_center = center + center_jitter
+        new_center[0] = np.clip(new_center[0], 0, W)
+        new_center[1] = np.clip(new_center[1], 0, H)
+
+        results['center'] = new_center
+        return results
+
+
+@PIPELINES.register_module()
+class SimulateLowRes(object):
+    def __init__(self,
+                 dist: str = 'categorical',
+                 factor: float = 1.0,
+                 cat_factors=(1.0, ),
+                 factor_min: float = 1.0,
+                 factor_max: float = 1.0) -> None:
+        self.factor_min = factor_min
+        self.factor_max = factor_max
+        self.dist = dist
+        self.cat_factors = cat_factors
+        assert dist in ['uniform', 'categorical']
+
+    def _sample_low_res(self, image: np.ndarray) -> np.ndarray:
+        """"""
+        if self.dist == 'uniform':
+            downsample = self.factor_min != self.factor_max
+            if not downsample:
+                return image
+            factor = np.random.rand() * (self.factor_max -
+                                         self.factor_min) + self.factor_min
+        elif self.dist == 'categorical':
+            if len(self.cat_factors) < 2:
+                return image
+            idx = np.random.randint(0, len(self.cat_factors))
+            factor = self.cat_factors[idx]
+
+        H, W, _ = image.shape
+        downsampled_image = cv2.resize(image,
+                                       (int(W // factor), int(H // factor)),
+                                       cv2.INTER_NEAREST)
+        resized_image = cv2.resize(downsampled_image, (W, H),
+                                   cv2.INTER_LINEAR_EXACT)
+        return resized_image
+
+    def __call__(self, results):
+        """"""
+        img = results['img']
+        img = self._sample_low_res(img)
+        results['img'] = img
+
+        return results
