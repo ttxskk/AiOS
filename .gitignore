@@ -134,7 +134,6 @@ test_result/
 *.jpg
 *.obj
 *.ply
-*.txt
 !demo/resources/*
 
 # Resources as exception
