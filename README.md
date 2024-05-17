@@ -34,9 +34,11 @@
   - [AGORA](https://agora.is.tue.mpg.de/index.html)       
   - [BEDLAM](https://bedlam.is.tue.mpg.de/index.html)      
 - download [SMPL-X](https://smpl-x.is.tue.mpg.de/) body models.
+- download SMPL body models `SMPL_FEMALE.pkl`, `SMPL_MALE.pkl`, `SMPL_NEUTRAL.pkl` provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
+- download other SMPL-X dependent files: `SMPLX_to_J14.pkl`, `MANO_SMPLX_vertex_ids.pkl`, `SMPL-X__FLAME_vertex_ids.npy`, `SMPLX_NEUTRAL.pkl`
+  provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
 - download AiOS [checkpoint](https://drive.google.com/file/d/1arUq25YMpgrTCKFKsQQy1LAaNgVwlL99/view?usp=sharing)
 - download AGORA validation set [Humandata](https://drive.google.com/file/d/1cjCVwrFdZ9qMXsA_yaZa3_plYYK8uyPU/view?usp=sharing)
-
 Organize them according to this datastructure:
 ```text
 AiOS/
@@ -51,6 +53,10 @@ AiOS/
     |       ├──SMPLX_NEUTRAL.npz
     |       ├──SMPLX_MALE.npz
     |       └──SMPLX_FEMALE.npz
+        └── smpl
+    |       ├──SMPL_FEMALE.pkl
+    |       ├──SMPL_MALE.pkl
+    |       └──SMPL_NEUTRAL.pkl
     ├── cache
     ├── checkpoint
     │   └── aios_checkpoint.pth
@@ -72,7 +78,7 @@ conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit
 
 # Install Pytorch3D
 git clone -b v0.6.1 https://github.com/facebookresearch/pytorch3d.git
-cd pythorch3d
+cd pytorch3d
 pip install -v -e .
 cd ..
 

@@ -31,3 +31,4 @@ isort==4.3.21
 pytest
 surrogate
 xdoctest >= 0.10.0
+setuptools==59.5.0
