@@ -248,7 +248,7 @@ class HumanDataset(torch.utils.data.Dataset):
             
 
             bbox_list = bbox_xywh[frame_start:frame_end, :4]
-            # import ipdb;ipdb.set_trace()
+            
             valid_idx = []
             body_bbox_list = []
             
@@ -258,9 +258,9 @@ class HumanDataset(torch.utils.data.Dataset):
             #     bbox_ratio = 1.25
             # if self.__class__.__name__ == 'SPEC':
             #     bbox_ratio = 1.25
-            # import ipdb;ipdb.set_trace()
+            
             for bbox_i, bbox in enumerate(bbox_list):
-                # import ipdb;ipdb.set_trace()
+                
                 bbox = process_bbox(bbox,
                                     img_width=img_shape[1],
                                     img_height=img_shape[0],
@@ -320,7 +320,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 lhand_bbox_list.append(lhand_bbox)
                 rhand_bbox_list.append(rhand_bbox)
                 face_bbox_list.append(face_bbox)
-            # import ipdb;ipdb.set_trace()
+            
             # lhand_bbox = np.stack(lhand_bbox_list,axis=0)
             # rhand_bbox = np.stack(rhand_bbox_list,axis=0)
             # face_bbox = np.stack(face_bbox_list,axis=0)
@@ -352,7 +352,7 @@ class HumanDataset(torch.utils.data.Dataset):
             lhand_bbox_valid = lhand_bbox_xywh[valid_idx,4]
             rhand_bbox_valid = rhand_bbox_xywh[valid_idx,4]
             face_bbox_valid = face_bbox_xywh[valid_idx,4]
-            # import ipdb;ipdb.set_trace()
+            
             # TODO: set invalid if None?
             smplx_param['root_pose'] = smplx_param.pop('global_orient', None)
             smplx_param['shape'] = smplx_param.pop('betas', None)
@@ -419,7 +419,7 @@ class HumanDataset(torch.utils.data.Dataset):
             if joint_cam is not None and np.any(np.isnan(joint_cam)):
                 continue
             
-            # import ipdb;ipdb.set_trace()
+            
             if self.__class__.__name__ == 'SPEC':
                 joint_img[:,:,2] = joint_img[:,:,2]>0
                 joint_cam[:,:,3] = joint_cam[:,:,0]!=0
@@ -556,7 +556,7 @@ class HumanDataset(torch.utils.data.Dataset):
                     smplx_pose_valid[:, smpl_x.orig_joints_name.index(name)] = 0
                 for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
                      smplx_joint_valid[:,smpl_x.joints_name.index(name)] = 0
-            # import ipdb;ipdb.set_trace()
+            
             
             # TODO: check here
             # if not (smplx_shape == 0).all():
@@ -580,7 +580,7 @@ class HumanDataset(torch.utils.data.Dataset):
             body_bbox_valid_list = []
             body_bbox_list = []
             # hand and face bbox transform
-            # import ipdb;ipdb.set_trace()
+            
 
             for i in range(num_person):
                 lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
@@ -592,7 +592,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
@@ -627,7 +627,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 body_bbox_center_list.append(body_bbox_center)
                 body_bbox_size_list.append(body_bbox_size)
                 body_bbox_valid_list.append(body_bbox_valid)
-            # import ipdb;ipdb.set_trace()
+            
             
             body_bbox = np.stack(body_bbox_list, axis=0)
             lhand_bbox = np.stack(lhand_bbox_list, axis=0)
@@ -661,8 +661,8 @@ class HumanDataset(torch.utils.data.Dataset):
                 joint_cam_wo_ra[...,-1] = joint_cam_wo_ra[...,-1] * smplx_joint_valid[...,0]
                 joint_img_aug[...,-1] = joint_img_aug[...,-1] * smplx_joint_valid[...,0]
             # if body_bbox_valid.sum() > 0:
-            # import ipdb;ipdb.set_trace()
-            # import ipdb;ipdb.set_trace()
+            
+            
             targets = {
                 # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
                 'joint_img': joint_img_aug[body_bbox_valid>0], 
@@ -714,7 +714,7 @@ class HumanDataset(torch.utils.data.Dataset):
         if self.data_split == 'test':
             self.cam_param = {}
             joint_cam = data['joint_cam']
-            # import ipdb;ipdb.set_trace()
+            
             if joint_cam is not None:
                 dummy_cord = False
                 joint_cam[:,:,:3] = joint_cam[:,:,:3] - joint_cam[
@@ -788,7 +788,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)                
@@ -936,14 +936,14 @@ class HumanDataset(torch.utils.data.Dataset):
             bbox_xy1 = np.concatenate((bbox, np.ones_like(bbox[:, :1])), 1)
             bbox = np.dot(img2bb_trans,
                           bbox_xy1.transpose(1, 0)).transpose(1, 0)[:, :2]
-            # import ipdb;ipdb.set_trace()
+            
             # print(bbox)
             # bbox[:, 0] = bbox[:, 0] / input_img_shape[1] * cfg.output_hm_shape[2]
             # bbox[:, 1] = bbox[:, 1] / input_img_shape[0] * cfg.output_hm_shape[1]
-            # import ipdb;ipdb.set_trace()
+            
             bbox[:, 0] = bbox[:, 0] / input_img_shape[1]
             bbox[:, 1] = bbox[:, 1] / input_img_shape[0]
-            # import ipdb;ipdb.set_trace()
+            
             # make box a rectangle without rotation
             if np.max(bbox[:,0])<=0 or np.min(bbox[:,0])>=1 or np.max(bbox[:,1])<=0 or np.min(bbox[:,1])>=1:
                 bbox_valid = float(False)
@@ -955,7 +955,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 xmax = np.min([np.max(bbox[:, 0]), 1])
                 ymin = np.max([np.min(bbox[:, 1]), 0])
                 ymax = np.min([np.max(bbox[:, 1]), 1])
-                # import ipdb;ipdb.set_trace()
+                
                 bbox = np.array([xmin, ymin, xmax, ymax], dtype=np.float32)
 
                 bbox = np.clip(bbox,0,1)
@@ -996,7 +996,7 @@ class HumanDataset(torch.utils.data.Dataset):
                 img_path.append(annots[ann_id]['img_path'])
             eval_result['img_path'] = img_path
             eval_result['ann_idx'] = ann_idx
-            # import ipdb;ipdb.set_trace()
+            
             img = out['img']
             # MPVPE from all vertices
             mesh_out_align = mesh_out - np.dot(

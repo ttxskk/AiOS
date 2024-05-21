@@ -151,7 +151,7 @@ class UBody_MM(HumanDataset):
             # MPVPE from all vertices
             mesh_out = out['smplx_mesh_cam']
             mesh_out_align = rigid_align_batch(mesh_out, mesh_gt)
-            # import ipdb;ipdb.set_trace()
+            
             if mesh_valid.sum()>0:
                 pa_mpvpe_all = np.sqrt(np.sum(
                     (mesh_out_align - mesh_gt)**2, -1))[mesh_valid].mean() * 1000
@@ -159,7 +159,7 @@ class UBody_MM(HumanDataset):
                 pa_mpvpe_all = 0
             
             eval_result['pa_mpvpe_all'].append(pa_mpvpe_all)
-            # import ipdb;ipdb.set_trace()
+            
             mesh_out_align = mesh_out - np.dot(smpl_x.J_regressor, mesh_out).transpose(1,0,2)[:,smpl_x.J_regressor_idx['pelvis'], None, :] + \
                              np.dot(smpl_x.J_regressor, mesh_gt).transpose(1,0,2)[:,smpl_x.J_regressor_idx['pelvis'], None, :]
             if mesh_valid.sum()>0:
@@ -184,7 +184,7 @@ class UBody_MM(HumanDataset):
                 np.dot(smpl_x.J_regressor, mesh_out).transpose(1,0,2)[:, smpl_x.J_regressor_idx['rwrist'], None, :] + \
                 np.dot(smpl_x.J_regressor, mesh_gt).transpose(1,0,2)[:, smpl_x.J_regressor_idx['rwrist'], None, :]
             mpvpe_hand = []
-            # import ipdb;ipdb.set_trace()
+            
             if mesh_lhand_valid.sum() != 0:
                 mpvpe_lhand = np.sqrt(
                     np.sum((mesh_out_lhand_align - mesh_gt_lhand)**2,
@@ -253,7 +253,7 @@ class UBody_MM(HumanDataset):
                 eval_result['pa_mpvpe_face'].append(np.zeros_like(np.mean(np.zeros_like(mpvpe_all))))
             for k,v in eval_result.items():
                 if k != 'img_path' and k != 'ann_idx':
-                    # import ipdb;ipdb.set_trace()
+                    
                     if len(v)>1:
                         eval_result[k] = np.concatenate(v,axis=0)
                     else:
@@ -270,7 +270,7 @@ class UBody_MM(HumanDataset):
                 np.array([[i, i + 1] for i in range(self.num_data)])
 
         num_examples = len(frame_range)
-        # import ipdb;ipdb.set_trace()
+        
         if 'meta' in content:
             meta = content['meta'].item()
             print('meta keys:', meta.keys())
@@ -303,7 +303,7 @@ class UBody_MM(HumanDataset):
         is_crowd = meta['iscrowd']
         keypoints_valid = content['keypoints2d_ubody'][:,:,2].sum(-1)!=0
         bbox_xywh = content['bbox_xywh']
-        # import ipdb;ipdb.set_trace()
+        
         
         if 'smplx' in content:
             smplx = content['smplx'].item()
@@ -344,7 +344,7 @@ class UBody_MM(HumanDataset):
         valid_kps3d = False
         keypoints3d_mask = None
         valid_kps3d_mask = False
-        # import ipdb;ipdb.set_trace()
+        
         # test_vid_list = np.load(self.test_vid_list)
         
         # processing keypoints
@@ -356,14 +356,14 @@ class UBody_MM(HumanDataset):
                 if keypoints3d.shape[-1] == 4:
                     valid_kps3d_mask = True
                 break
-        # import ipdb;ipdb.set_trace()
+        
         if self.keypoints2d is not None:
             keypoints2d = decompressed_kps[self.keypoints2d][:, self.SMPLX_137_MAPPING, :] if decompressed \
                 else content[self.keypoints2d][:, self.SMPLX_137_MAPPING, :]
             keypoints2d = keypoints2d[:,:,:3]
         if keypoints2d.shape[-1] == 3:
             valid_kps3d_mask = True
-        # import ipdb;ipdb.set_trace()
+        
         
         print('Done. Time: {:.2f}s'.format(time.time() - tic))
 
@@ -379,7 +379,7 @@ class UBody_MM(HumanDataset):
             #     continue
             # if i>20:
             #     break
-            # import ipdb;ipdb.set_trace()
+            
             frame_start, frame_end = frame_range[i]
             img_path = osp.join(self.img_dir, image_path[frame_start])
             video_name = img_path.split('/')[-2]
@@ -397,7 +397,7 @@ class UBody_MM(HumanDataset):
             unique_bbox_idx = np.unique(bbox_list,axis=0,return_index=True)[1]
             unique_bbox_idx.sort()
             unique_bbox_list = bbox_list[unique_bbox_idx]
-            # import ipdb;ipdb.set_trace()
+            
             valid_idx = []
             body_bbox_list = []
             
@@ -405,16 +405,16 @@ class UBody_MM(HumanDataset):
                 bbox_ratio = cfg.bbox_ratio * 0.833  # preprocess body bbox is giving 1.2 box padding
             else:
                 bbox_ratio = 1.25
-            # import ipdb;ipdb.set_trace()
+            
             for bbox_i, bbox in zip(unique_bbox_idx,unique_bbox_list):
-                # import ipdb;ipdb.set_trace()
+                
                 bbox = process_bbox(bbox,
                                     img_width=img_shape[1],
                                     img_height=img_shape[0],
                                     ratio=bbox_ratio)
                 if bbox is None:
                     continue
-                # import ipdb;ipdb.set_trace()
+                
                 if is_crowd[frame_start + bbox_i] == 0 and valid_label[frame_start + bbox_i] != 0 and keypoints_valid[frame_start + bbox_i] == True:
                     
                     valid_idx.append(frame_start + bbox_i)
@@ -469,7 +469,7 @@ class UBody_MM(HumanDataset):
                 lhand_bbox_list.append(lhand_bbox)
                 rhand_bbox_list.append(rhand_bbox)
                 face_bbox_list.append(face_bbox)
-            # import ipdb;ipdb.set_trace()
+            
             # lhand_bbox = np.stack(lhand_bbox_list,axis=0)
             # rhand_bbox = np.stack(rhand_bbox_list,axis=0)
             # face_bbox = np.stack(face_bbox_list,axis=0)
@@ -481,7 +481,7 @@ class UBody_MM(HumanDataset):
                 joint_cam = keypoints3d[valid_idx]
             else:
                 joint_cam = None
-            # import ipdb;ipdb.set_trace()
+            
             if 'leye_pose_0' in smplx.keys():
                 smplx.pop('leye_pose_0')
             if 'leye_pose_1' in smplx.keys():
@@ -557,7 +557,7 @@ class UBody_MM(HumanDataset):
             if joint_cam is not None and np.any(np.isnan(joint_cam)):
                 continue
             
-            # import ipdb;ipdb.set_trace()
+            
             
             datalist.append({
                 'img_path': img_path,
@@ -635,7 +635,7 @@ class UBody_MM(HumanDataset):
         # 
         
         # img = (img.astype(np.float32)) / 255.
-        # import ipdb;ipdb.set_trace()
+        
 
         num_person = len(data['bbox'])
 
@@ -663,7 +663,7 @@ class UBody_MM(HumanDataset):
                     dtype=np.float32)
 
             joint_img = data['joint_img']
-            # import ipdb;ipdb.set_trace()
+            
             
             # TODO
             # do rotation on keypoints
@@ -673,7 +673,7 @@ class UBody_MM(HumanDataset):
                     self.joint_set['flip_pairs'], img2bb_trans, rot,
                     self.joint_set['joints_name'], smpl_x.joints_name,
                     cropped_img_shape)
-            # import ipdb;ipdb.set_trace()
+            
             joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:]*joint_trunc
             # smplx coordinates and parameters
             
@@ -717,7 +717,7 @@ class UBody_MM(HumanDataset):
             # for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
             #     smplx_joint_valid[smpl_x.joints_name.index(name)] = 0
             smplx_joint_valid = smplx_joint_valid[:, :, None]
-            # import ipdb;ipdb.set_trace()
+            
             
             # TODO: check here
             # if not (smplx_shape == 0).all():
@@ -741,7 +741,7 @@ class UBody_MM(HumanDataset):
             body_bbox_valid_list = []
             body_bbox_list = []
             # hand and face bbox transform
-            # import ipdb;ipdb.set_trace()
+            
 
             for i in range(num_person):
                 lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
@@ -753,7 +753,7 @@ class UBody_MM(HumanDataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
@@ -788,7 +788,7 @@ class UBody_MM(HumanDataset):
                 body_bbox_center_list.append(body_bbox_center)
                 body_bbox_size_list.append(body_bbox_size)
                 body_bbox_valid_list.append(body_bbox_valid)
-            # import ipdb;ipdb.set_trace()
+            
             
             body_bbox = np.stack(body_bbox_list, axis=0)
             lhand_bbox = np.stack(lhand_bbox_list, axis=0)
@@ -872,7 +872,7 @@ class UBody_MM(HumanDataset):
                 joint_cam = None
             else:
                 joint_cam = data['joint_cam']
-            # import ipdb;ipdb.set_trace()
+            
             if joint_cam is not None:
                 dummy_cord = False
                 joint_cam[:,:,:3] = joint_cam[:,:,:3] - joint_cam[
@@ -920,7 +920,7 @@ class UBody_MM(HumanDataset):
             smplx_joint_valid = smplx_joint_valid[:, :, None]
             smplx_pose = smplx_pose*smplx_pose_valid
             smplx_expr = smplx_expr*smplx_expr_valid
-            # import ipdb;ipdb.set_trace()
+            
             # if not (smplx_shape == 0).all():
             #     smplx_shape_valid = True
             # else:
@@ -952,7 +952,7 @@ class UBody_MM(HumanDataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)                

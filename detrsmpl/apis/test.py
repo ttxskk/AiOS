@@ -125,13 +125,13 @@ def collect_results_cpu(result_part, size, tmpdir=None):
             part_file = osp.join(tmpdir, f'part_{i}.pkl')
             part_result = mmcv.load(part_file)
             part_list.append(part_result)
-        # import ipdb;ipdb.set_trace()
+        
         # sort the results
         ordered_results = []
         for res in zip(*part_list):
             ordered_results.extend(list(res))
         # the dataloader may pad some samples
-        # import ipdb;ipdb.set_trace()
+        
         ordered_results = ordered_results[:size]
         # remove tmp dir
         shutil.rmtree(tmpdir)
@@ -141,7 +141,7 @@ def collect_results_cpu(result_part, size, tmpdir=None):
 def collect_results_gpu(result_part, size):
     """Collect results in gpu."""
     rank, world_size = get_dist_info()
-    # import ipdb;ipdb.set_trace()
+    
     # dump result part to tensor with pickle
     part_tensor = torch.tensor(bytearray(pickle.dumps(result_part)),
                                dtype=torch.uint8,

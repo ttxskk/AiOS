@@ -99,7 +99,7 @@ class AGORA_MM(HumanDataset):
     def load_data(self, train_sample_interval=1):
 
         content = np.load(self.annot_path, allow_pickle=True)
-        # import ipdb;ipdb.set_trace()
+        
         try:
             frame_range = content['frame_range']
         except KeyError:
@@ -107,7 +107,7 @@ class AGORA_MM(HumanDataset):
                 np.array([[i, i + 1] for i in range(self.num_data)])
 
         num_examples = len(frame_range)
-        # import ipdb;ipdb.set_trace()
+        
         if 'meta' in content:
             meta = content['meta'].item()
             print('meta keys:', meta.keys())
@@ -180,7 +180,7 @@ class AGORA_MM(HumanDataset):
         valid_kps3d = False
         keypoints3d_mask = None
         valid_kps3d_mask = False
-        # import ipdb;ipdb.set_trace()
+        
         
         # processing keypoints
         for kps3d_key in KPS3D_KEYS:
@@ -205,7 +205,7 @@ class AGORA_MM(HumanDataset):
         if keypoints2d.shape[-1] == 3:
             valid_kps3d_mask = True
         occlusion = content['meta'][()]['occ'] if 'occ' in content['meta'][()] and len(content['meta'][()]['occ'])>0 else None
-        # import ipdb;ipdb.set_trace()
+        
         print('Done. Time: {:.2f}s'.format(time.time() - tic))
 
         datalist = []
@@ -223,7 +223,7 @@ class AGORA_MM(HumanDataset):
             
 
             bbox_list = bbox_xywh[frame_start:frame_end, :4]
-            # import ipdb;ipdb.set_trace()
+            
             valid_idx = []
             body_bbox_list = []
             
@@ -231,9 +231,9 @@ class AGORA_MM(HumanDataset):
                 bbox_ratio = cfg.bbox_ratio * 0.833  # preprocess body bbox is giving 1.2 box padding
             else:
                 bbox_ratio = 1.25
-            # import ipdb;ipdb.set_trace()
+            
             for bbox_i, bbox in enumerate(bbox_list):
-                # import ipdb;ipdb.set_trace()
+                
                 bbox = process_bbox(bbox,
                                     img_width=img_shape[1],
                                     img_height=img_shape[0],
@@ -293,7 +293,7 @@ class AGORA_MM(HumanDataset):
                 lhand_bbox_list.append(lhand_bbox)
                 rhand_bbox_list.append(rhand_bbox)
                 face_bbox_list.append(face_bbox)
-            # import ipdb;ipdb.set_trace()
+            
             # lhand_bbox = np.stack(lhand_bbox_list,axis=0)
             # rhand_bbox = np.stack(rhand_bbox_list,axis=0)
             # face_bbox = np.stack(face_bbox_list,axis=0)
@@ -305,7 +305,7 @@ class AGORA_MM(HumanDataset):
                 joint_cam = keypoints3d[valid_idx]
             else:
                 joint_cam = None
-            # import ipdb;ipdb.set_trace()
+            
             if 'leye_pose_0' in smplx.keys():
                 smplx.pop('leye_pose_0')
             if 'leye_pose_1' in smplx.keys():
@@ -517,10 +517,10 @@ class AGORA_MM(HumanDataset):
             # for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
             #     smplx_joint_valid[smpl_x.joints_name.index(name)] = 0
             smplx_joint_valid = smplx_joint_valid[:, :, None]
-            # import ipdb;ipdb.set_trace()
+            
 
                 
-            # import ipdb;ipdb.set_trace()
+            
             # TODO: check here
             # if not (smplx_shape == 0).all():
             #     smplx_shape_valid = True
@@ -543,7 +543,7 @@ class AGORA_MM(HumanDataset):
             body_bbox_valid_list = []
             body_bbox_list = []
             # hand and face bbox transform
-            # import ipdb;ipdb.set_trace()
+            
 
             for i in range(num_person):
                 lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
@@ -555,7 +555,7 @@ class AGORA_MM(HumanDataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
@@ -590,7 +590,7 @@ class AGORA_MM(HumanDataset):
                 body_bbox_center_list.append(body_bbox_center)
                 body_bbox_size_list.append(body_bbox_size)
                 body_bbox_valid_list.append(body_bbox_valid)
-            # import ipdb;ipdb.set_trace()
+            
             
             body_bbox = np.stack(body_bbox_list, axis=0)
             lhand_bbox = np.stack(lhand_bbox_list, axis=0)
@@ -613,7 +613,7 @@ class AGORA_MM(HumanDataset):
             if 'occlusion' in data:
                 occlusion = data['occlusion']
                 occ_mask = occlusion<97
-                # import ipdb;ipdb.set_trace()
+                
                 joint_img_aug[:,:,2] = joint_img_aug[:,:,2]*occ_mask[:,None]
                 joint_cam_wo_ra[:,:,3] = joint_cam_wo_ra[:,:,3]*occ_mask[:,None]
                 joint_trunc = joint_trunc*occ_mask[:,None,None]
@@ -641,8 +641,8 @@ class AGORA_MM(HumanDataset):
             if self.__class__.__name__ == 'GTA_Human2':
                 smplx_shape_valid = smplx_shape_valid*0
             # if body_bbox_valid.sum() > 0:
-            # import ipdb;ipdb.set_trace()
-            # import ipdb;ipdb.set_trace()
+            
+            
             targets = {
                 # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
                 'joint_img': joint_img_aug[body_bbox_valid>0], 
@@ -761,7 +761,7 @@ class AGORA_MM(HumanDataset):
         if self.data_split == 'test':
             self.cam_param = {}
             joint_cam = data['joint_cam']
-            # import ipdb;ipdb.set_trace()
+            
             if joint_cam is not None:
                 dummy_cord = False
                 joint_cam[:,:,:3] = joint_cam[:,:,:3] - joint_cam[
@@ -836,7 +836,7 @@ class AGORA_MM(HumanDataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)                

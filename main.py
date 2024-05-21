@@ -99,13 +99,13 @@ def main(args):
     # dist.barrier()
     # debugpy.breakpoint()
     print('Loading config file from {}'.format(args.config_file))
-    # import ipdb;ipdb.set_trace()
+    
     shutil.copy2(args.config_file,'config/aios_smplx.py')
     torch.distributed.barrier()
     from config.config import cfg
     from datasets.dataset import MultipleDatasets
     
-    # import ipdb;ipdb.set_trace()
+    
     # cfg.fromfile(args.config_file)
     # cfg.get_config_fromfile(args.config_file)
 
@@ -114,7 +114,7 @@ def main(args):
 
     if args.options is not None:
         cfg.merge_from_dict(args.options)
-    # import ipdb;ipdb.set_trace()
+    
     if args.rank == 0:
         save_cfg_path = os.path.join(args.output_dir, 'config_cfg.py')
         cfg.dump(save_cfg_path)
@@ -210,7 +210,7 @@ def main(args):
                                   weight_decay=args.weight_decay)
 
 
-    # import ipdb;ipdb.set_trace()
+    
     logger.info('Creating dataset...')
     if not args.eval:
         trainset= []
@@ -263,7 +263,7 @@ def main(args):
     else:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
-    # import ipdb;ipdb.set_trace()
+    
 
 
     if args.frozen_weights is not None:
@@ -343,7 +343,7 @@ def main(args):
                      wo_class_error=wo_class_error,
                      args=args)            
         else:
-            # import ipdb;ipdb.set_trace()
+            
             from config.config import cfg
             cfg.result_dir=args.output_dir
             cfg.exp_name=args.pretrain_model_path

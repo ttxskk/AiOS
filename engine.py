@@ -67,13 +67,13 @@ def train_one_epoch(model: torch.nn.Module,
     # import pdb
     # pdb.set_trace()
     # metric_logger.log_every(data_loader, print_freq, header, logger=logger)
-    # import ipdb;ipdb.set_trace()
+    
     for step_i, data_batch in enumerate(metric_logger.log_every(data_loader,
                                               print_freq,
                                               header,
                                               logger=logger)):
         # for data_batch in data_loader:
-        # import ipdb;ipdb.set_trace()
+        
         with torch.cuda.amp.autocast(enabled=args.amp):
             if need_tgt_for_training:
                 # outputs = model(samples, targets)
@@ -269,7 +269,7 @@ def evaluate(model,
         
         # DOING SMPLer-X Test
         cur_eval_result = dataset.evaluate(result,cur_sample_idx)
-        # import ipdb;ipdb.set_trace()
+        
         cur_eval_result_list.append(cur_eval_result)
         # for cur_eval_result in cur_eval_result_list:
         #     for k, v in cur_eval_result.items():
@@ -281,7 +281,7 @@ def evaluate(model,
     cur_eval_result_new = collect_results_cpu(cur_eval_result_list, len(dataset))
     
     if rank == 0:
-        # import ipdb;ipdb.set_trace()
+        
         cntt = 0
         for res in cur_eval_result_new:
 
@@ -294,11 +294,11 @@ def evaluate(model,
                             eval_result[k] = [v]
 
         for k,v in eval_result.items():
-            # import ipdb;ipdb.set_trace()
+            
             # if k == 'mpvpe_all' or k == 'pa_mpvpe_all':
             eval_result[k] = np.concatenate(v)
             
-            # import ipdb;ipdb.set_trace()
+            
         dataset.print_eval_result(eval_result)
         # print(len(cur_eval_result_new))
         

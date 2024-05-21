@@ -213,7 +213,7 @@ class EHF(HumanDataset):
 
         for k,v in eval_result.items():
             if k != 'img_path' and k != 'ann_idx':
-                # import ipdb;ipdb.set_trace()
+                
                 if len(v)>1:
                     eval_result[k] = np.concatenate(v,axis=0)
                 else:
