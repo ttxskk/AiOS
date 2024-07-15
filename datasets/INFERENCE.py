@@ -234,10 +234,10 @@ class INFERENCE(torch.utils.data.Dataset):
                 output.update({out_key: out_value})
                 
                 # show bbox 
-                # img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
-                # img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
-                # img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
-                # img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
+                img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
+                img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
+                img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
+                img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
                 
                 verts = out['smpl_verts'][:i] + out['cam_trans'][:i][:, None]
                 body_model_cfg = dict(

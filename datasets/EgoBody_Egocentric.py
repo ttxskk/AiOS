@@ -21,16 +21,17 @@ class EgoBody_Egocentric(HumanDataset):
         super(EgoBody_Egocentric, self).__init__(transform, data_split)
 
         if self.data_split == 'train':
-            filename = 'data/preprocessed_npz_old/egobody_egocentric_train_cache_ds2_0211.npz'
-            self.annot_path_cache = 'data/preprocessed_npz_old/egobody_egocentric_test_230425_043_fix_betas.npz'
+            filename = 'data/preprocessed_npz/multihuman_data/egobody_egocentric_train_multi_080824.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/egobody_egocentric_train_cache_080824.npz'
+            self.sample_interval = 5
         else:
-            filename = 'data/multihuman_data/egobody_egocentric_test_230425_043_fix_betas.npz'
-            self.annot_path_cache = 'data/cache/egobody_egocentric_test_cache_0412.npz'
+            filename = 'data/preprocessed_npz/multihuman_data/egobody_egocentric_val_multi_080824.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/egobody_egocentric_val_cache_080824.npz'
+            self.sample_interval = 1
         self.use_betas_neutral = getattr(cfg, 'egobody_fix_betas', False)
 
         self.img_dir = 'data/osx_data/EgoBody'
         self.annot_path = filename
-        # self.annot_path_cache = 'data/preprocessed_npz/egobody_egocentric_test_230425_043_cache.npz'
         self.use_cache = getattr(cfg, 'use_cache', False)
         self.img_shape = (1080, 1920)  # (h, w)
         self.cam_param = {}
@@ -54,7 +55,7 @@ class EgoBody_Egocentric(HumanDataset):
                     f'[{self.__class__.__name__}] Cache not found, generating cache...'
                 )
             self.datalist = self.load_data(train_sample_interval=getattr(
-                cfg, f'{self.__class__.__name__}_train_sample_interval', 2))
+                cfg, f'{self.__class__.__name__}_train_sample_interval', self.sample_interval))
             if self.use_cache:
                 self.save_cache(self.annot_path_cache, self.datalist)
                 
@@ -155,49 +156,7 @@ class EgoBody_Egocentric(HumanDataset):
                 writer = csv.writer(file)
                 new_line = [ann_idx[n], img_path[n], eval_result['mpvpe_all'][-1], eval_result['pa_mpvpe_all'][-1]]
                 writer.writerow(new_line)
-                # self.save_idx += 1
-            vis = False
-            if vis:
-                import mmcv
-                img = (out['img']).transpose(0,2,3,1)
-                img = mmcv.imdenormalize(
-                    img=img[0], 
-                    mean=np.array([123.675, 116.28, 103.53]), 
-                    std=np.array([58.395, 57.12, 57.375]),
-                    to_bgr=True).astype(np.uint8)
-                from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                import ipdb;ipdb.set_trace()
-                visualize_kp2d(
-                    out['smplx_joint_proj'][0][None],
-                    image_array=img[None].copy(),
-                    disable_limbs=True,
-                    overwrite=True,
-                    output_path='./figs/pred2d'
-                )
-                from pytorch3d.io import save_obj
-                save_obj('temp.obj',verts=out['smplx_mesh_cam'][0],faces=torch.tensor([]))
-            # MPVPE from face vertices
-            mesh_gt_face = mesh_gt[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face = mesh_out[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face_align = \
-                mesh_out_face - \
-                np.dot(smpl_x.J_regressor, mesh_out).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :] + \
-                np.dot(smpl_x.J_regressor, mesh_gt).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :]
-            eval_result['mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
-            mesh_out_face_align = rigid_align_batch(mesh_out_face, mesh_gt_face)
-            eval_result['pa_mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
             
-        # for k,v in eval_result.items():
-        #     if k != 'img_path' and k != 'ann_idx':
-        #         # import ipdb;ipdb.set_trace()
-        #         if len(v)>1:
-        #             eval_result[k] = np.concatenate(v,axis=0)
-        #         else:
-        #             eval_result[k] = np.array(v)
 
         return eval_result
 

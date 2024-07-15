@@ -39,14 +39,14 @@ class HungarianMatcher(nn.Module):
                 .79, .79
             ]) / 10.0
         else:
-            raise ValueError(f'Unsupported keypoints number {num_keypoints}')
+            raise ValueError(f'Unsupported keypoints number {num_body_points}')
 
     @torch.no_grad()
     def forward(self, outputs, targets, data_batch=None):
         bs, num_queries = outputs['pred_logits'].shape[:2]
         out_prob = outputs['pred_logits'].flatten(0, 1).sigmoid()
         out_bbox = outputs['pred_boxes'].flatten(0, 1)
-        # import ipdb;ipdb.set_trace()
+        
         out_keypoints = outputs['pred_keypoints'].flatten(0, 1)
 
         # Also concat the target labels and boxes
@@ -112,7 +112,6 @@ class HungarianMatcher(nn.Module):
             linear_sum_assignment(c[i])
             for i, c in enumerate(C.split(sizes, -1))
         ]
-
         if tgt_ids.shape[0] > 0:
             cost_mean_dict = {
                 'class': cost_class.mean(),
@@ -188,7 +187,7 @@ class HungarianMatcherBox(nn.Module):
                 .79, .79
             ]) / 10.0
         else:
-            raise ValueError(f'Unsupported keypoints number {num_keypoints}')
+            raise ValueError(f'Unsupported keypoints number {num_body_points}')
 
     @torch.no_grad()
     def forward(self, outputs, targets):

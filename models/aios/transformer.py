@@ -1067,7 +1067,7 @@ class TransformerDecoder(nn.Module):
                      new_reference_points_for_lhand_bbox,
                      new_reference_points_for_rhand_bbox,
                      new_reference_points_for_face_box), dim=1).flatten(0,1)
-                # import ipdb;ipdb.set_trace()
+                
                 new_reference_points = torch.cat((dn_new_reference_points, new_reference_points),dim=0)
                 output = torch.cat((dn_output, output), dim=0)
                 tgt_mask = tgt_mask2
@@ -1289,7 +1289,7 @@ class TransformerDecoder(nn.Module):
                 new_face_output = torch.cat(
                     (new_output_for_face_box.unsqueeze(1), 
                      new_output_for_face_keypoint), dim=1)
-                # import ipdb;ipdb.set_trace()
+                
 
                 # new_reference_points = torch.cat(
                 #     (dn_reference_points_body.unsqueeze(1),

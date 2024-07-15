@@ -119,33 +119,6 @@ class PostProcess(nn.Module):
             out_smpl_kp3d, 1,
             topk_smpl[:, :, None, None].repeat(1, 1, out_smpl_kp3d.shape[-2],
                                                3))
-
-        if False:
-            import cv2
-            import mmcv
-            img = cv2.imread(data_batch_nc['img_metas'][0]['image_path'])
-            render_img = mmcv.imshow_bboxes(img.copy(),
-                                            boxes[0][:3].cpu().numpy(),
-                                            show=False)
-            cv2.imwrite('r_bbox.png', render_img)
-            gt_bbox_xyxy = xywh2xyxy(
-                data_batch_nc['bbox_xywh'][0].cpu().numpy())
-            render_img = mmcv.imshow_bboxes(img.copy(),
-                                            gt_bbox_xyxy,
-                                            show=False)
-            cv2.imwrite('r_bbox.png', render_img)
-            from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-            visualize_kp3d(smpl_kp3d[0][[0]].cpu().numpy(),
-                           output_path='.',
-                           data_source='smpl_54')
-            from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-            visualize_kp2d(keypoints_res[0].reshape(-1, 17,
-                                                    3)[[0]].cpu().numpy(),
-                           output_path='.',
-                           image_array=img.copy()[None],
-                           data_source='coco',
-                           overwrite=True)
-
         tgt_smpl_kp3d = data_batch_nc['keypoints3d_smpl']
         tgt_smpl_pose = [
             torch.concat([
@@ -483,35 +456,14 @@ class PostProcess_SMPLX(nn.Module):
         # smpl out_smpl_pose, out_smpl_beta, out_smpl_cam, out_smpl_kp3d
         topk_smpl = topk_indexes // out_logits.shape[2]
         labels = topk_indexes % out_logits.shape[2]
-        # import ipdb;ipdb.set_trace()
+        
         smpl_pose = torch.gather(out_smpl_pose, 1, topk_smpl[:,:,None].repeat(1, 1, 159))        
         smpl_beta = torch.gather(out_smpl_beta, 1, topk_smpl[:,:,None].repeat(1, 1, 10))   
         smpl_expr = torch.gather(out_smpl_expr, 1, topk_smpl[:,:,None].repeat(1, 1, 10))   
         smpl_cam = torch.gather(out_smpl_cam, 1, topk_smpl[:,:,None].repeat(1, 1, 3))   
         smpl_kp3d = torch.gather(out_smpl_kp3d, 1, topk_smpl[:,:,None, None].repeat(1, 1, out_smpl_kp3d.shape[-2],3))
         smpl_verts = torch.gather(out_smpl_verts, 1, topk_smpl[:,:,None, None].repeat(1, 1, out_smpl_verts.shape[-2],3))
-        if False:
-            import cv2
-            import mmcv
-            import ipdb;ipdb.set_trace()
-            img = (data_batch_nc['img'][1].permute(1,2,0)*255).int().detach().cpu().numpy()
-            # img = cv2.imread(data_batch_nc['img_metas'][1]['image_path'])
-            tgt_bbox_center = torch.stack(data_batch_nc['body_bbox_center'])
-            tgt_bbox_size = torch.stack(data_batch_nc['body_bbox_size']).cpu().numpy()
-            tgt_bbox = torch.cat([tgt_bbox_center-tgt_bbox_size/2,tgt_bbox_center+tgt_bbox_size/2],dim=-1)
-            tgt_img_shape = data_batch_nc['img_shape']
-            bbox = tgt_bbox.cpu().numpy()*(tgt_img_shape.repeat(1,2).cpu().numpy()[:,::-1])
-            render_img = mmcv.imshow_bboxes(img.copy(), boxes[1][:3].cpu().numpy(), show=False)
-            cv2.imwrite('r_bbox.png',render_img)
-            
-            render_img = mmcv.imshow_bboxes(img.copy(), bbox, show=False)
-            # cv2.imwrite('r_bbox.png',render_img)
-            # from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-            # visualize_kp3d(smpl_kp3d[1][[0]].cpu().numpy(),output_path='.',data_source='smpl_54')
-            from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-            import ipdb;ipdb.set_trace()
-            visualize_kp2d(keypoints_res[0].reshape(-1,17,3)[[3]].cpu().numpy(), output_path='.', image_array=img.copy()[None], data_source='coco',overwrite=True)
-        # TODO: align it with agora
+
         tgt_smpl_kp3d = data_batch_nc['joint_cam']
         tgt_smpl_kp3d_conf = data_batch_nc['joint_valid']
         tgt_smpl_pose = data_batch_nc['smplx_pose']
@@ -521,7 +473,7 @@ class PostProcess_SMPLX(nn.Module):
         tgt_img_shape = data_batch_nc['img_shape']
         tgt_ann_idx = data_batch_nc['ann_idx']
         # tgt_img_path = data_batch_nc['img_shape']
-        # import ipdb;ipdb.set_trace()        
+                
         
         tgt_bbox_center = torch.stack(data_batch_nc['body_bbox_center'])
         tgt_bbox_size = torch.stack(data_batch_nc['body_bbox_size'])
@@ -593,7 +545,7 @@ class PostProcess_SMPLX(nn.Module):
             # gt_smpl_beta=(tgt_smpl_beta[i][gt_ind].detach().cpu().numpy())
             # gt_boxes=(tgt_bbox[i][gt_ind].detach().cpu().numpy())
             # gt_smpl_expr=(tgt_smpl_expr[i][gt_ind].detach().cpu().numpy())
-            # import ipdb;ipdb.set_trace()
+            
             # gt_smpl_verts=(tgt_verts[i][gt_ind].detach().cpu().numpy())
             # gt_keypoints=(tgt_keypoints[i][gt_ind].detach().cpu().numpy())
             # gt_bb2img_trans=(tgt_bb2img_trans[i][gt_ind].detach().cpu().numpy())
@@ -603,7 +555,7 @@ class PostProcess_SMPLX(nn.Module):
             gt_smpl_beta=(tgt_smpl_beta[i].detach().cpu().numpy())
             gt_boxes=(tgt_bbox[i].detach().cpu().numpy())
             gt_smpl_expr=(tgt_smpl_expr[i].detach().cpu().numpy())
-            # import ipdb;ipdb.set_trace()
+            
             gt_smpl_verts=(tgt_verts[i].detach().cpu().numpy())
             gt_ann_idx=(tgt_ann_idx[i].detach().cpu().numpy())
             gt_keypoints=(tgt_keypoints[i].detach().cpu().numpy())
@@ -611,7 +563,7 @@ class PostProcess_SMPLX(nn.Module):
             gt_bb2img_trans=(tgt_bb2img_trans[i].detach().cpu().numpy())
             if 'image_id' in targets[i]:
                 image_idx=(targets[i]['image_id'].detach().cpu().numpy())
-            # import ipdb;ipdb.set_trace()
+            
             # pred_smpl_pose = np.concatenate(pred_smpl_pose,axis = 0)
             # gt_bb2img_trans = np.concatenate(gt_bb2img_trans,axis = 0)
             # gt_smpl_verts = np.concatenate(gt_smpl_verts,axis = 0)
@@ -623,7 +575,7 @@ class PostProcess_SMPLX(nn.Module):
             smplx_lhand_pose = pred_smpl_pose[:,66:111]
             smplx_rhand_pose = pred_smpl_pose[:,111:156]
             smplx_jaw_pose = pred_smpl_pose[:,156:]
-            # import ipdb;ipdb.set_trace()
+            
             # pred_smpl_kp3d = np.concatenate(pred_smpl_kp3d,axis = 0)
 
             pred_smpl_cam = torch.Tensor(pred_smpl_cam)
@@ -641,96 +593,14 @@ class PostProcess_SMPLX(nn.Module):
             pred_smpl_kp2d = pred_smpl_kp2d.numpy()
             pred_smpl_cam = pred_smpl_cam.numpy()
             # cam_trans = get_camera_trans(pred_smpl_cam)
-            # import ipdb;ipdb.set_trace()
+            
             # pred_smpl_kp2d = (pred_smpl_kp2d+1)/2
             # pred_smpl_kp2d[:, :,0] = pred_smpl_kp2d[:, :, 0] * gt_img_shape[1]
             # pred_smpl_kp2d[:, :, 1] = pred_smpl_kp2d[:, :, 1] * gt_img_shape[0]
             # # joint_proj = np.dot(out['bb2img_trans'], joint_proj.transpose(1, 0)).transpose(1, 0)
             # # joint_proj[:, 0] = joint_proj[:, 0] / self.resolution[1] * 3840  # restore to original resolution
             # # joint_proj[:, 1] = joint_proj[:, 1] / self.resolution[0] * 2160  # restore to original resolution
-            # import ipdb;ipdb.set_trace()
-            vis = False
-            if vis:
-                from pytorch3d.io import save_obj
-                from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-                from detrsmpl.utils.demo_utils import get_default_hmr_intrinsic
-                # import ipdb;ipdb.set_trace()
-                # img = (data_batch_nc['img'][i]*255).permute(1,2,0).int().detach().cpu().numpy()
-                # (s, tx, ty) = (pred_smpl_cam[:, 0] + 1e-9), pred_smpl_cam[:, 1], pred_smpl_cam[:, 2]
-                # depth, dx, dy = 1./s, tx/s, ty/s
-                # cam_t = np.stack([dx, dy, depth], 1)   
-                # K = torch.Tensor(
-                #     get_default_hmr_intrinsic(focal_length=5000,
-                #                             det_height=750,
-                #                             det_width=1333))
-                # render_smpl(verts = pred_smpl_verts+cam_t[:,None,:],
-                #             image_array=img.copy()[None],
-                #             body_model=self.body_model,convention='opencv',
-                #             output_path='.',overwrite=True,K=K)
-             
-                # save_obj(
-                #     'pred.obj', 
-                #     torch.tensor(pred_smpl_verts[0]), 
-                #     torch.tensor(self.body_model.faces.astype(np.float)))
-                # import ipdb;ipdb.set_trace()
-                import mmcv
-                import cv2
-                import numpy as np
-                from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-                from detrsmpl.models.body_models.builder import build_body_model
-                
-                from pytorch3d.io import save_obj
-                from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-                # import ipdb;ipdb.set_trace()
-                img = mmcv.imdenormalize(
-                    img=(data_batch_nc['img'][i].cpu().numpy()).transpose(1, 2, 0), 
-                    mean=np.array([123.675, 116.28, 103.53]), 
-                    std=np.array([58.395, 57.12, 57.375]),
-                    to_bgr=True).astype(np.uint8)
-                img  = mmcv.imshow_bboxes(img,pred_boxes,show=False)
-                img= visualize_kp2d(pred_smpl_kp2d, output_path='.', image_array=img.copy()[None], data_source='smplx',overwrite=True)[0]
-                name = str(pred_smpl_kp2d[0,0,0]).replace('.','')
-                cv2.imwrite('res_vis/%s.png'%name, img)
-             # # joint_proj = np.dot(out['bb2img_trans'], joint_proj.transpose(1, 0)).transpose(1, 0)
-            # # joint_proj[:, 0] = joint_proj[:, 0] / self.resolution[1] * 3840  # restore to original resolution
-            # # joint_proj[:, 1] = joint_proj[:, 1] / self.resolution[0] * 2160  # restore to original resolution
-            # # import ipdb;ipdb.set_trace()
-            # from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-            # from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-            # from detrsmpl.models.body_models.builder import build_body_model
-            # import ipdb;ipdb.set_trace()
-            # body_model = dict(
-            #                         type='smplx',
-            #                         keypoint_src='smplx',
-            #                         num_expression_coeffs=10,
-            #                         keypoint_dst='smplx_137',
-            #                         model_path='data/body_models/smplx',
-            #                         use_pca=False,
-            #                         use_face_contour=True)
-            # body_modeltest = build_body_model(body_model)
-
-            # # device =gt_betas.device
-            # # body_modeltest.to(device)
-            # gt_output = body_modeltest(betas=torch.Tensor(gt_smpl_beta[None].reshape(-1, 10)),body_pose=torch.Tensor(gt_smpl_pose[3:66][None].reshape(-1, 21*3)), global_orient=torch.Tensor(gt_smpl_pose[:3][None].reshape(-1, 3)),left_hand_pose=torch.Tensor(gt_smpl_pose[66:111][None].reshape(-1, 15*3)),right_hand_pose=torch.Tensor(gt_smpl_pose[111:156][None].reshape(-1, 15*3)),jaw_pose=torch.Tensor(gt_smpl_pose[156:][None].reshape(-1, 3)),)      
-            # img = (data_batch_nc['img'][i]*255).permute(1,2,0).int().detach().cpu().numpy()
-            # render_smpl(verts = gt_output['vertices'],image_array=img.copy()[None],body_model=self.body_model,convention='opencv',orig_cam = np.concatenate([pred_smpl_cam[:,:1],pred_smpl_cam[:,:1],pred_smpl_cam[:,1:]],axis=-1),output_path='.',overwrite=True)
             
-            # import ipdb;ipdb.set_trace()
-            
-            # img_new = visualize_smpl_hmr(
-            #     cam_transl=pred_smpl_cam,
-            #     verts = pred_smpl_verts,
-            #     body_model=self.body_model,
-            #     bbox = np.array([0,0,gt_img_shape[1],gt_img_shape[0]]),
-            #     det_width = gt_img_shape[1],
-            #     det_height=gt_img_shape[0],
-            #     image_array=img.copy()[None],
-            #     output_path='.',
-            #     overwrite=True
-
-            # )
             
             results.append({
                     'scores': pred_scores, 
@@ -826,14 +696,12 @@ class PostProcess_SMPLX_Multi(nn.Module):
         device = outputs['pred_keypoints'].device
         for body_model in self.body_model.values():
             body_model.to(device)
-        # test with instance num
-        # num_select=data_batch_nc['joint_img'][0].shape[0]
-        # num_select = self.num_select
+
         num_select = 1
         out_logits, out_bbox, out_keypoints= \
             outputs['pred_logits'], outputs['pred_boxes'], \
             outputs['pred_keypoints']
-        # import ipdb;ipdb.set_trace()
+        
         out_smpl_pose, out_smpl_beta, out_smpl_expr, out_smpl_cam, out_smpl_kp3d, out_smpl_verts = \
             outputs['pred_smpl_fullpose'], outputs['pred_smpl_beta'], outputs['pred_smpl_expr'], \
             outputs['pred_smpl_cam'], outputs['pred_smpl_kp3d'], outputs['pred_smpl_verts']
@@ -910,7 +778,7 @@ class PostProcess_SMPLX_Multi(nn.Module):
         # smpl out_smpl_pose, out_smpl_beta, out_smpl_cam, out_smpl_kp3d
         topk_smpl = topk_indexes // out_logits.shape[2]
         labels = topk_indexes % out_logits.shape[2]
-        # import ipdb;ipdb.set_trace()
+        
         smpl_pose = torch.gather(out_smpl_pose, 1, topk_smpl[:,:,None].repeat(1, 1, 159))        
         smpl_beta = torch.gather(out_smpl_beta, 1, topk_smpl[:,:,None].repeat(1, 1, 10))   
         smpl_expr = torch.gather(out_smpl_expr, 1, topk_smpl[:,:,None].repeat(1, 1, 10))   
@@ -995,21 +863,11 @@ class PostProcess_SMPLX_Multi(nn.Module):
             # smpl kp2d
             gt_kp2d_conf = gt_kp2d[:,:,2:3]
             gt_kp2d_ = (gt_kp2d[:, :, :2] * scale[:2]) /torch.tensor([12, 16]).to(device)
-            # import ipdb;ipdb.set_trace()
+            
             gt_kp2d_body = gt_kp2d_[:, smpl_x.joint_part['body']]
             gt_kp2d_body_conf  = gt_kp2d_conf[:, smpl_x.joint_part['body']]
             pred_kp2d_body = pred_kp2d[:, smpl_x.joint_part['body']] # smplx kps head
-            # print(gt_kp2d_body.shape,gt_kp2d_body_conf.shape,pred_kp2d_body.shape,pred_kp2d.shape)
-            # exit()
-            # print(gt_kp2d_body_conf.shape)
-            # exit()
-            # gt_kp2d_body_conf, _ = convert_kps(gt_kp2d_conf,'smplx_137', 'coco', approximate=True)
-            # gt_kp2d_body, _ = convert_kps(gt_kp2d_,'smplx_137', 'coco', approximate=True)
-            # pred_kp2d_body, _ = convert_kps(pred_kp2d,'smplx_137', 'coco', approximate=True)
-            # cost_keypoints = torch.abs(
-            #     (pred_kp2d_body[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])
-            #                            ).sum([-2,-1])
-            # print(dataset.__class__.__name__)
+
             if dataset.__class__.__name__ == 'UBody_MM':
                 cost_keypoints = torch.abs(
                     (pred_kp2d_body[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])*gt_kp2d_body_conf[None]
@@ -1022,22 +880,9 @@ class PostProcess_SMPLX_Multi(nn.Module):
             gt_kp3d_ = torch.tensor(np.array(gt_kp3d) - np.array(gt_kp3d)[:, [0]]).to(device)
             pred_kp3d_ = (pred_kp3d - pred_kp3d[:, [0]])
             cost_kp3d = torch.abs((pred_kp3d_[:, None] - gt_kp3d_[None])).sum([-2,-1])
-            # import ipdb;ipdb.set_trace()
+            
             # 1. kps
             indice = linear_sum_assignment(cost_keypoints.cpu())
-            
-            # 2. bbox giou
-            # indice = linear_sum_assignment(cost_giou.cpu())
-            
-            # 3. bbox
-            # indice = linear_sum_assignment(cost_bbox.cpu())      
-            
-            # 4. all
-            # indice = linear_sum_assignment(
-            #     10* (cost_keypoints).cpu() +  5 * cost_bbox.cpu())
-            
-            # 5. kp3d 
-            # indice = linear_sum_assignment(cost_kp3d.cpu())
             
             pred_ind, gt_ind = indice
             pred_indice_list.append(pred_ind)
@@ -1068,7 +913,7 @@ class PostProcess_SMPLX_Multi(nn.Module):
             kp3d = smpl_kp3d[i][pred_indice_list[i]]
             cam = smpl_cam[i][pred_indice_list[i]]
             img_wh = img_wh.flip(-1)[None]
-            # import ipdb;ipdb.set_trace()
+            
             kp2d = project_points_new(
                 points_3d=kp3d,
                 pred_cam=cam,
@@ -1080,13 +925,6 @@ class PostProcess_SMPLX_Multi(nn.Module):
             pred_smpl_kp2d.append(kp2d.detach().cpu().numpy())
             pred_smpl_kp3d.append(kp3d.detach().cpu().numpy())
             pred_smpl_cam.append(cam.detach().cpu().numpy())
-        
-        # pred_smpl_cam = torch.cat(
-        #     [t[i] for t, i in zip(smpl_cam, pred_indice_list)]
-        #     ).detach().cpu().numpy()
-        # pred_smpl_kp3d = torch.cat(
-        #     [t[i] for t, i in zip(smpl_kp3d, pred_indice_list)]
-        #     )
         pred_smpl_pose = torch.cat(
             [t[i] for t, i in zip(smpl_pose, pred_indice_list)]
             ).detach().cpu().numpy()
@@ -1099,13 +937,7 @@ class PostProcess_SMPLX_Multi(nn.Module):
         pred_smpl_verts = torch.cat(
             [t[i] for t, i in zip(smpl_verts, pred_indice_list)]
             ).detach().cpu().numpy()
-        # from pytorch3d.io import save_obj
-        # for m_i,(mesh_out_i) in enumerate(smpl_verts[0].detach().cpu()):
-        #         save_obj('temp_smpl_%d.obj'%m_i,verts=(mesh_out_i),faces=torch.tensor([]))
-        # for m_i,(mesh_out_i) in enumerate(pred_smpl_verts):
-        #         save_obj('temp_pred_%d.obj'%m_i,verts=torch.Tensor(mesh_out_i),faces=torch.tensor([]))
-        # print(pred_indice_list)
-        # exit()
+
         pred_smpl_kp2d = np.concatenate(pred_smpl_kp2d, 0)
         pred_smpl_kp3d = np.concatenate(pred_smpl_kp3d, 0)
         pred_smpl_cam = np.concatenate(pred_smpl_cam, 0)       
@@ -1416,7 +1248,7 @@ class PostProcess_SMPLX_Multi_Box(nn.Module):
             outputs['pred_smpl_cam'], outputs['pred_smpl_kp3d'], outputs['pred_smpl_verts']
 
         out_smpl_kp2d = []
-        # import ipdb;ipdb.set_trace()
+        
         for bs in range(batch_size):
             out_kp3d_i = out_smpl_kp3d[bs]
             out_cam_i = out_smpl_cam[bs]
@@ -1551,57 +1383,22 @@ class PostProcess_SMPLX_Multi_Box(nn.Module):
             # smpl kp2d
             gt_kp2d_conf = gt_kp2d[:,:,2:3]
             gt_kp2d_ = (gt_kp2d[:, :, :2] * scale[:2]) /torch.tensor([12, 16]).to(device)
-            
-            # gt_kp2d_conf, _ = convert_kps(gt_kp2d_conf,'smplx_137', 'coco', approximate=True)
-            # cost_keypoints = torch.abs(
-            #     (pred_kp2d_body[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])*gt_kp2d_conf[None]
-            #                            ).sum([-2,-1])/gt_kp2d_conf[None].sum()    
+             
             gt_kp2d_body, _ = convert_kps(gt_kp2d_,'smplx_137', 'coco', approximate=True)
             pred_kp2d_body, _ = convert_kps(pred_kp2d,'smplx_137', 'coco', approximate=True)
             cost_keypoints = torch.abs(
                 (pred_kp2d_body[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])
                                        ).sum([-2,-1])
-            # cost_keypoints = torch.abs(
-            #     (pred_kp2d_body[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])*gt_kp2d_body_conf[None]
-            #                            ).sum([-2,-1])/gt_kp2d_body_conf[None].sum()    
-            # coco kp2d
-            # gt_kp2d_conf, _ = convert_kps(gt_kp2d_conf,'smplx_137', 'coco', approximate=True)
-            # keypoints_coco = Z_pred.reshape(num_select, 17,2)
-            
-            # ubody
-            # cost_keypoints_coco = torch.abs(
-            #     (keypoints_coco[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])*gt_kp2d_conf[None]
-            #                            ).sum([-2,-1])/gt_kp2d_conf[None].sum()          
-            
-            # others
-            # cost_keypoints_coco = torch.abs(
-            #     (keypoints_coco[:, None]/scale[:2] - gt_kp2d_body[None]/scale[:2])
-            #                            ).sum([-2,-1])               
+          
                     
             # smpl kp3d
             gt_kp3d_ = torch.tensor(np.array(gt_kp3d) - np.array(gt_kp3d)[:, [0]]).to(device)
             pred_kp3d_ = (pred_kp3d - pred_kp3d[:, [0]])
             cost_kp3d = torch.abs((pred_kp3d_[:, None] - gt_kp3d_[None])).sum([-2,-1])
-            # import ipdb;ipdb.set_trace()
+            
             # 1. kps
             indice = linear_sum_assignment(cost_keypoints.cpu())
-            
-            # 2. bbox giou
-            # indice = linear_sum_assignment(cost_giou.cpu())
-            
-            # 3. bbox
-            # indice = linear_sum_assignment(cost_bbox.cpu())      
-            
-            # 4. all
-            # indice = linear_sum_assignment(
-            #     10* (cost_keypoints).cpu() +  5 * cost_bbox.cpu())
-            
-            # 5. kp3d 
-            # indice = linear_sum_assignment(cost_kp3d.cpu())
-            
-            # 5. kp2d coco
-            # indice = linear_sum_assignment(cost_keypoints_coco.cpu())
-            
+
             pred_ind, gt_ind = indice
             pred_indice_list.append(pred_ind)
             gt_indice_list.append(gt_ind)
@@ -1615,13 +1412,7 @@ class PostProcess_SMPLX_Multi_Box(nn.Module):
         pred_boxes = torch.cat(
             [t[i] for t, i in zip(boxes, pred_indice_list)]
             ).detach().cpu().numpy()
-        # pred_keypoints = torch.cat(
-        #     [t[i] for t, i in zip(keypoints_res, pred_indice_list)]
-        #     ).detach().cpu().numpy()
-        
 
-
-        
         pred_smpl_kp2d = []
         pred_smpl_kp3d = []
         pred_smpl_cam = []
@@ -1631,7 +1422,7 @@ class PostProcess_SMPLX_Multi_Box(nn.Module):
             kp3d = smpl_kp3d[i][pred_indice_list[i]]
             cam = smpl_cam[i][pred_indice_list[i]]
             img_wh = img_wh.flip(-1)[None]
-            # import ipdb;ipdb.set_trace()
+            
             kp2d = project_points_new(
                 points_3d=kp3d,
                 pred_cam=cam,
@@ -1644,12 +1435,6 @@ class PostProcess_SMPLX_Multi_Box(nn.Module):
             pred_smpl_kp3d.append(kp3d.detach().cpu().numpy())
             pred_smpl_cam.append(cam.detach().cpu().numpy())
         
-        # pred_smpl_cam = torch.cat(
-        #     [t[i] for t, i in zip(smpl_cam, pred_indice_list)]
-        #     ).detach().cpu().numpy()
-        # pred_smpl_kp3d = torch.cat(
-        #     [t[i] for t, i in zip(smpl_kp3d, pred_indice_list)]
-        #     )
         pred_smpl_pose = torch.cat(
             [t[i] for t, i in zip(smpl_pose, pred_indice_list)]
             ).detach().cpu().numpy()

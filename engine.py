@@ -17,6 +17,7 @@ from detrsmpl.apis.test import collect_results_cpu, collect_results_gpu
 from detrsmpl.utils.ffmpeg_utils import images_to_video
 from torch.utils.tensorboard import SummaryWriter   
 import json
+from mmcv.runner import get_dist_info, init_dist
 
 def round_float(items):
     if isinstance(items, list):
@@ -64,24 +65,15 @@ def train_one_epoch(model: torch.nn.Module,
     print_freq = 10
 
     _cnt = 0
-    # import pdb
-    # pdb.set_trace()
-    # metric_logger.log_every(data_loader, print_freq, header, logger=logger)
-    # import ipdb;ipdb.set_trace()
     for step_i, data_batch in enumerate(metric_logger.log_every(data_loader,
                                               print_freq,
                                               header,
                                               logger=logger)):
-        # for data_batch in data_loader:
-        # import ipdb;ipdb.set_trace()
         with torch.cuda.amp.autocast(enabled=args.amp):
             if need_tgt_for_training:
-                # outputs = model(samples, targets)
                 outputs, targets, data_batch_nc = model(data_batch)
             else:
                 outputs, targets, data_batch_nc = model(data_batch)
-            
-            # torch.cuda.empty_cache() 
             
             ['hand_kp3d_4', 'face_kp3d_4', 'hand_kp2d_4',]
             loss_dict = criterion(outputs, targets, data_batch=data_batch_nc)
@@ -106,12 +98,7 @@ def train_one_epoch(model: torch.nn.Module,
         }
         losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
 
-        # loss_smpl_sum = sum(loss_smpl.values())
-
-        # loss_value_smpl = loss_smpl_sum.item()
-
         loss_value = losses_reduced_scaled.item()
-        # loss_value = loss_value+loss_value_smpl
         for k,v in weight_dict.items():
             for n in ['hand_kp3d_4', 'face_kp3d_4', 'hand_kp2d_4']:
                 if n in k:
@@ -143,16 +130,7 @@ def train_one_epoch(model: torch.nn.Module,
             if epoch >= args.ema_epoch:
                 ema_m.update(model)
         rank, _ = get_dist_info()
-
-        if rank == 0:
-            tf_writer.add_scalar(
-                'loss', round_float(loss_value), step_i + len(data_loader) * epoch)
-            for k, v in loss_dict_reduced_scaled.items():
-                tf_writer.add_scalar(
-                    k, round_float(v), step_i + len(data_loader) * epoch)
-            for k, v in loss_dict_reduced_unscaled.items():
-                tf_writer.add_scalar(
-                    k, round_float(v), step_i + len(data_loader) * epoch)
+        
         json_log = OrderedDict()
         json_log['now_time'] = str(datetime.datetime.now())
         json_log['epoch'] = epoch
@@ -269,7 +247,7 @@ def evaluate(model,
         
         # DOING SMPLer-X Test
         cur_eval_result = dataset.evaluate(result,cur_sample_idx)
-        # import ipdb;ipdb.set_trace()
+        
         cur_eval_result_list.append(cur_eval_result)
         # for cur_eval_result in cur_eval_result_list:
         #     for k, v in cur_eval_result.items():
@@ -281,7 +259,7 @@ def evaluate(model,
     cur_eval_result_new = collect_results_cpu(cur_eval_result_list, len(dataset))
     
     if rank == 0:
-        # import ipdb;ipdb.set_trace()
+        
         cntt = 0
         for res in cur_eval_result_new:
 
@@ -294,11 +272,11 @@ def evaluate(model,
                             eval_result[k] = [v]
 
         for k,v in eval_result.items():
-            # import ipdb;ipdb.set_trace()
+            
             # if k == 'mpvpe_all' or k == 'pa_mpvpe_all':
             eval_result[k] = np.concatenate(v)
             
-            # import ipdb;ipdb.set_trace()
+            
         dataset.print_eval_result(eval_result)
         # print(len(cur_eval_result_new))
         
@@ -381,14 +359,14 @@ def inference(model,
         eval_out = dataset.inference(result)
         eval_result.update(eval_out)
     eval_result.update(eval_out)
-    # print('ssss',dataset.result_img_dir,dataset.out_path,dataset.img_name)
+
     time.sleep(3)
     if rank == 0 and args.to_vid:
         # img_tmp = dataset.img_path[0]
         if hasattr(dataset,'result_img_dir'):
             import shutil
             images_to_video(dataset.result_img_dir, os.path.join(dataset.output_path,dataset.img_name+'_demo.mp4'),remove_raw_file=False, fps=30)
-            shutil.rmtree(dataset.result_img_dir)
-            shutil.rmtree(dataset.tmp_dir)
+            # shutil.rmtree(dataset.result_img_dir)
+            # shutil.rmtree(dataset.tmp_dir)
 
 

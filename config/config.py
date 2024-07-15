@@ -17,7 +17,7 @@ from mmcv import Config as MMConfig
 #         self.data_dir = osp.join(self.root_dir, 'dataset')
 #         self.human_model_path = osp.join(self.root_dir, 'common', 'utils',
 #                                          'human_model_files')
-#         # import ipdb;ipdb.set_trace()
+#         
 #         ## add some paths to the system root dir
 #         # sys.path.insert(0, osp.join(self.root_dir, 'common'))
 #         # sys.path.insert(0, osp.join(self.root_dir, 'united-perception_utils'))
@@ -85,7 +85,7 @@ class Config(MMConfig):
         self.config_path = config_path
 
         cfg, _ = MMConfig._file2dict(self.config_path)
-        # import ipdb;ipdb.set_trace()
+        
         self.merge_from_dict(cfg)
         # #import ipdb;ipdb.set_trace()
         # self.__dict__.update(dict(cfg))
@@ -100,7 +100,7 @@ class Config(MMConfig):
         dir_dict['data_dir'] = osp.join(dir_dict['root_dir'], 'dataset')
         dir_dict['human_model_path'] = osp.join('data/body_models')
         self.merge_from_dict(dir_dict)
-        # # import ipdb;ipdb.set_trace()
+        # 
         # ## add some paths to the system root dir
         sys.path.insert(0, osp.join(self.root_dir, 'common'))
         sys.path.insert(0, osp.join(self.root_dir, 'united-perception_utils'))
@@ -161,4 +161,4 @@ class Config(MMConfig):
 
 cfg = Config()
 cfg.get_config_fromfile('config/aios_smplx.py')
-# import ipdb;ipdb.set_trace()
+

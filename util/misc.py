@@ -18,6 +18,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 from torch import Tensor
+import logging
 
 import colorsys
 
@@ -176,12 +177,26 @@ def reduce_dict(input_dict, average=True):
             values.append(input_dict[k])
         # pdb.set_trace()
         values = torch.stack(values, dim=0)
-        dist.all_reduce(values)
+        
+        try:
+            dist.all_reduce(values)
+            rank = dist.get_rank()
+            # logging.info(f'Rank {rank} after all_reduce')
+        except Exception as e:
+            rank = dist.get_rank()
+            print(f'Exception in rank {rank}: {e}')
+            # print(f'values: {values}')
+            # print(f'names: {names}')
+            logging.info(f'Rank {rank} after all_reduce')
         if average:
             values /= world_size
         reduced_dict = {k: v for k, v in zip(names, values)}
     return reduced_dict
 
+def setup_logging():
+    logging.basicConfig(level=logging.INFO)
+    rank = dist.get_rank()
+    logging.info(f'Rank {rank} before all_reduce')
 
 class MetricLogger(object):
     def __init__(self, delimiter='\t'):
@@ -242,7 +257,7 @@ class MetricLogger(object):
                 'time: {time}', 'data: {data}'
             ])
         MB = 1024.0 * 1024.0
-        # import ipdb;ipdb.set_trace()
+        
         for obj in iterable:
             data_time.update(time.time() - end)
             yield obj

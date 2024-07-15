@@ -101,7 +101,7 @@ def transform_joint_to_other_db(src_joint, src_name, dst_name):
 
 
 def transform_joint_to_other_db_batch(src_joint, src_name, dst_name):
-    # import ipdb;ipdb.set_trace()
+    
     src_joint_num = len(src_name)
     dst_joint_num = len(dst_name)
     person_num = src_joint.shape[0]

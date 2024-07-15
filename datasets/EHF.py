@@ -209,49 +209,11 @@ class EHF(HumanDataset):
                 self.save_idx += 1
                 
             # vis = cfg.vis
-            vis = False
-            if vis:
-                save_folder = 'data/ehf_vis'
-                kpt_save_folder = os.path.join(save_folder, 'KPT')
-                os.makedirs(kpt_save_folder, exist_ok=True)
-                mesh_save_folder = os.path.join(save_folder, 'mesh_origin')
-                os.makedirs(mesh_save_folder, exist_ok=True)
-                # from util.vis import vis_keypoints, render_mesh, save_obj
-                img = (out['img'][0].transpose(1, 2, 0)[:, :, ::-1] * 255).copy()
-                joint_img = out['joint_img'].copy()
-                joint_img[:, 0] = joint_img[:, 0] / cfg.output_hm_shape[
-                    2] * cfg.input_img_shape[1]
-                joint_img[:, 1] = joint_img[:, 1] / cfg.output_hm_shape[
-                    1] * cfg.input_img_shape[0]
-                for j in range(len(joint_img)):
-                    cv2.circle(img,
-                               (int(joint_img[j][0]), int(joint_img[j][1])), 3,
-                               (0, 0, 255), -1)
-                lhand_bbox = out['lhand_bbox'].reshape(2, 2).copy()
-                cv2.rectangle(img,
-                              (int(lhand_bbox[0][0]), int(lhand_bbox[0][1])),
-                              (int(lhand_bbox[1][0]), int(lhand_bbox[1][1])),
-                              (255, 0, 0), 3)
-                rhand_bbox = out['rhand_bbox'].reshape(2, 2).copy()
-                cv2.rectangle(img,
-                              (int(rhand_bbox[0][0]), int(rhand_bbox[0][1])),
-                              (int(rhand_bbox[1][0]), int(rhand_bbox[1][1])),
-                              (255, 0, 0), 3)
-                face_bbox = out['face_bbox'].reshape(2, 2).copy()
-                cv2.rectangle(img,
-                              (int(face_bbox[0][0]), int(face_bbox[0][1])),
-                              (int(face_bbox[1][0]), int(face_bbox[1][1])),
-                              (255, 0, 0), 3)
-                cv2.imwrite(
-                    os.path.join(kpt_save_folder,
-                                 str(cur_sample_idx + n) + '.jpg'), img)
-
-                np.save(os.path.join(mesh_save_folder, f'{ann_id}.npy'),
-                        mesh_out)
+            
 
         for k,v in eval_result.items():
             if k != 'img_path' and k != 'ann_idx':
-                # import ipdb;ipdb.set_trace()
+                
                 if len(v)>1:
                     eval_result[k] = np.concatenate(v,axis=0)
                 else:

@@ -1,9 +1,7 @@
-_base_ = ['coco_transformer.py']
-
 num_classes = 2
-lr = 0.0001*1.414/10
+lr = 0.0001
 param_dict_type = 'default'
-lr_backbone = 1e-05*1.414/10
+lr_backbone = 1e-05
 lr_backbone_names = ['backbone.0']
 lr_linear_proj_names = ['reference_points', 'sampling_offsets']
 lr_linear_proj_mult = 0.1

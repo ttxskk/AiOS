@@ -3,12 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 **/*.pyc
-osx/output
 # C extensions
 *.so
 
 *.pkl
 # Distribution / packaging
+data/
+demo/
 .Python
 build/
 develop-eggs/
@@ -23,7 +24,8 @@ sdist/
 var/
 wheels/
 *.egg-info/
-data/
+data/datasets/
+data/body_models/
 .installed.cfg
 *.egg
 MANIFEST
@@ -108,9 +110,14 @@ venv.bak/
 
 # custom
 logs/
-data/
+!detrsmpl/data
 !mmhuman3d/data
 !osx/data
+ssc_script/
+work_dirs/
+logs/
+test_result/
+
 # data for pytest moved to http server
 # !tests/data
 .vscode
@@ -118,9 +125,7 @@ data/
 *.pkl
 *.pkl.json
 *.log.json
-work_dirs/
-logs/
-test_result/
+
 # Pytorch
 *.pth
 *.pt

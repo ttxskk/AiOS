@@ -34,9 +34,11 @@
   - [AGORA](https://agora.is.tue.mpg.de/index.html)       
   - [BEDLAM](https://bedlam.is.tue.mpg.de/index.html)      
 - download [SMPL-X](https://smpl-x.is.tue.mpg.de/) body models.
-- download AiOS [checkpoint]()
+- download SMPL body models `SMPL_FEMALE.pkl`, `SMPL_MALE.pkl`, `SMPL_NEUTRAL.pkl` provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
+- download other SMPL-X dependent files: `SMPLX_to_J14.pkl`, `MANO_SMPLX_vertex_ids.pkl`, `SMPL-X__FLAME_vertex_ids.npy`, `SMPLX_NEUTRAL.pkl`
+  provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
+- download AiOS [checkpoint](https://drive.google.com/file/d/1arUq25YMpgrTCKFKsQQy1LAaNgVwlL99/view?usp=sharing)
 - download AGORA validation set [Humandata](https://drive.google.com/file/d/1cjCVwrFdZ9qMXsA_yaZa3_plYYK8uyPU/view?usp=sharing)
-
 Organize them according to this datastructure:
 ```text
 AiOS/
@@ -51,6 +53,10 @@ AiOS/
     |       ├──SMPLX_NEUTRAL.npz
     |       ├──SMPLX_MALE.npz
     |       └──SMPLX_FEMALE.npz
+        └── smpl
+    |       ├──SMPL_FEMALE.pkl
+    |       ├──SMPL_MALE.pkl
+    |       └──SMPL_NEUTRAL.pkl
     ├── cache
     ├── checkpoint
     │   └── aios_checkpoint.pth
@@ -72,7 +78,7 @@ conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit
 
 # Install Pytorch3D
 git clone -b v0.6.1 https://github.com/facebookresearch/pytorch3d.git
-cd pythorch3d
+cd pytorch3d
 pip install -v -e .
 cd ..
 
@@ -107,6 +113,78 @@ sh scripts/inference.sh {INPUT_VIDEO} {OUTPUT_DIR}
 sh scripts/inference.sh short_video demo
 ```
 # Test
+
+<table>
+ <tr>
+   <th></th>
+   <th colspan="2">NMVE</th>
+   <th colspan="2">NMJE</th>
+   <th colspan="4">MVE</th>
+   <th colspan="4">MPJPE</th>
+ </tr>
+ <tr>
+   <th>DATASETS</th>
+   <th>FB</th>
+   <th>B</th>
+   <th>FB</th>
+   <th>B</th>
+   <th>FB</th>
+   <th>B</th>
+   <th>F</th>
+   <th>LH/RH</th>
+   <th>FB</th>
+   <th>B</th>
+   <th>F</th>
+   <th>LH/RH</th>
+ </tr>
+ <tr>
+   <td>BEDLAM</td>
+   <td>87.6</td>
+   <td>57.7</td>
+   <td>85.8</td>
+   <td>57.7</td>
+   <td>83.2</td>
+   <td>54.8</td>
+   <td>26.2</td>
+   <td>28.1/30.8</td>
+   <td>81.5</td>
+   <td>54.8</td>
+   <td>26.2</td>
+   <td>25.9/28.0</td>
+ </tr>
+ <tr>
+   <td>AGORA-Test</td>
+   <td>102.9</td>
+   <td>63.4</td>
+   <td>100.7</td>
+   <td>62.5</td>
+   <td>98.8</td>
+   <td>60.9</td>
+   <td>27.7</td>
+   <td>42.5/43.4</td>
+   <td>96.7</td>
+   <td>60.0</td>
+   <td>29.2</td>
+   <td>40.1/41.0</td>
+   </tr>
+  <tr>
+   <td>AGORA-Val</td>
+   <td>105.1</td>
+   <td>60.9</td>
+   <td>102.2</td>
+   <td>61.4</td>
+   <td>100.9</td>
+   <td>60.9</td>
+   <td>30.6</td>
+   <td>43.9/45.6</td>
+   <td>98.1</td>
+   <td>58.9</td>
+   <td>32.7</td>
+   <td>41.5/43.4</td>
+ </tr>
+</table>
+
+
 a. Make test_result dir 
 ```shell
 mkdir test_result
@@ -118,7 +196,7 @@ b. AGORA Validatoin
 Run the following command and it will generate a 'predictions/' result folder which can evaluate with the [agora evaluation tool](https://github.com/pixelite1201/agora_evaluation)    
 
 ```shell
-sh scripts/test_agora_val.sh data/checkpoint/aios_checkpoint.pth test_result/agora_val
+sh scripts/test_agora_val.sh data/checkpoint/aios_checkpoint.pth agora_val
 ```
 
 
@@ -127,7 +205,7 @@ b. AGORA Test Leaderboard
 
 Run the following command and it will generate a 'predictions.zip' which can be submitted to AGORA Leaderborad
 ```shell
-sh scripts/test_agora.sh data/checkpoint/aios_checkpoint.pth test_result/agora_val
+sh scripts/test_agora.sh data/checkpoint/aios_checkpoint.pth agora_test
 ```
 
 
@@ -136,11 +214,8 @@ c. BEDLAM
 
 Run the following command and it will generate a 'predictions.zip' which can be submitted to BEDLAM Leaderborad
 ```shell
-sh scripts/test_bedlam.sh
+sh scripts/test_bedlam.sh data/checkpoint/aios_checkpoint.pth bedlam_test
 ```
-
-# Train (Coming Soon)
-
 
 
 # Acknowledge

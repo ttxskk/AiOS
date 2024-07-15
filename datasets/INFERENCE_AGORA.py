@@ -34,11 +34,11 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
     def __init__(self, img_dir=None,out_path=None):
 
         
-        self.humandata = MultiHumanData()
-        self.humandata.load('data/multihuman_data/agora_validation_multi_3840_1010.npz')
-        # self.humandata.load('data/preprocessed_npz/multihuman_data/agora_validation_3840_230815_010175_full.npz')
+        # self.humandata = MultiHumanData()
+        # self.humandata.load('data/multihuman_data/agora_validation_multi_3840_1010.npz')
+        # # self.humandata.load('data/preprocessed_npz/multihuman_data/agora_validation_3840_230815_010175_full.npz')
         
-        self.val_path = sorted(set(self.humandata['image_path']),key=self.humandata['image_path'].index)
+        # self.val_path = sorted(set(self.humandata['image_path']),key=self.humandata['image_path'].index)
         
     
         
@@ -46,9 +46,11 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
 
         
         self.out_path =  out_path # cfg.exp_name
-        os.makedirs(self.out_path, exist_ok=True)
+        assert not os.path.exists(os.path.join(self.out_path,'predictions')), "Predictions path already exists: {}".format(self.out_path)
+
+    
         if self.img_dir.split('/')[-1] == 'test':
-            self.score_threshold = 0.3
+            self.score_threshold = 0.73
         elif self.img_dir.split('/')[-1] == 'validation':
             self.score_threshold = 0.1
         self.resolution = [720 ,1280] # AGORA test
@@ -108,10 +110,10 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
 
             instance_num = None
             
-            if os.path.join(*(self.img_paths[ann_idx].split('/')[-3:])) in self.val_path:
-                img_ind = self.val_path.index(os.path.join(*(self.img_paths[ann_idx].split('/')[-3:])))
-                frame_range = self.humandata['frame_range'][img_ind]
-                instance_num = frame_range[1] - frame_range[0]
+            # if os.path.join(*(self.img_paths[ann_idx].split('/')[-3:])) in self.val_path:
+            #     img_ind = self.val_path.index(os.path.join(*(self.img_paths[ann_idx].split('/')[-3:])))
+            #     frame_range = self.humandata['frame_range'][img_ind]
+            #     instance_num = frame_range[1] - frame_range[0]
             
             # os.makedirs(osp.join(self.out_path, 'vis'), exist_ok=True)
             # os.makedirs(osp.join(self.out_path, 'failed'), exist_ok=True)
@@ -168,9 +170,9 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
             for i, score in enumerate(scores):
                 if score < self.score_threshold:
                     break
-                if instance_num is not None:
-                    if i >= instance_num:
-                        break
+                # if instance_num is not None:
+                #     if i >= instance_num:
+                #         break
                 save_name = img_paths[ann_idx].split('/')[-1][:-4] # if not crop should be -4
                 if self.resolution == (2160, 3840):
                     save_name = save_name.split('_ann_id')[0]
@@ -223,10 +225,10 @@ class INFERENCE_AGORA(torch.utils.data.Dataset):
             #     output.update({out_key: out_value})
                 
             #     # show bbox 
-            #     # img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
-            #     # img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
-            #     # img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
-            #     # img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
+            #     img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
+            #     img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
+            #     img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
+            #     img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
                 
             #     verts = out['smpl_verts'][:i] + out['cam_trans'][:i][:, None]
             #     body_model_cfg = dict(

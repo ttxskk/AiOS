@@ -48,40 +48,22 @@ class AGORA_MM(HumanDataset):
 
         if data_split == 'train':
             if self.img_shape == [2160,3840]:
-                self.annot_path = 'data/multihuman_data/agora_train_3840_w_occ_multi_2010.npz' # has 'is_kid'
-                self.annot_path_cache = 'data/cache/agora_train_3840_w_occ_cache_2010.npz'
-                # self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_train_focal.npz'
-                # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_focal_cache.npz'
+                self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_train_3840_w_occ_multi_2010.npz'
+                self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_3840_w_occ_cache_2010.npz'
             elif self.img_shape == [720,1280]:
                 self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_train_1280_multi_1010.npz'
                 self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_cache_1280_1010.npz'
-                
-            # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_multi_1280_cache_all.npz'
-            # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_cache_1010.npz'
 
-            # self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_train_1280_multi_1010_occ.npz'
-            # # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_multi_1280_cache_all.npz'
-            # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_cache_0928.npz'
-            # # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_train_cache_1010_occ.npz'
         elif data_split == 'test':
             if self.img_shape == [2160,3840]:
-                self.annot_path = 'data/multihuman_data/agora_validation_multi_3840_1010.npz'
-                self.annot_path_cache = 'data/cache/agora_validation_cache_3840_1010_occ_cache_balance.npz'
-                
-                # self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_val_3840_focal_wo_occ.npz'
-                # self.annot_path_cache = 'data/preprocessed_npz/cache/agora_val_3840_focal_wo_occ.npz'
+                self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_validation_multi_3840_1010.npz'
+                self.annot_path_cache = 'data/preprocessed_npz/cache/agora_validation_cache_3840_1010_occ_cache_balance.npz'
             elif self.img_shape == [720,1280]:
                 self.annot_path = 'data/preprocessed_npz/multihuman_data/agora_validation_1280_1010_occ.npz'
                 self.annot_path_cache = 'data/preprocessed_npz/cache/agora_validation_cache_1280_1010_occ.npz'
         
         self.use_cache = getattr(cfg, 'use_cache', False)
         self.cam_param = {}
-        # self.img_shape = [720,1280]
-        
-        # check image shape
-        # img_path = osp.join(self.img_dir, np.load(self.annot_path)['image_path'][0])
-        # img_shape = cv2.imread(img_path).shape[:2]
-        # assert self.img_shape == img_shape, 'image shape is incorrect: {} vs {}'.format(self.img_shape, img_shape)
 
         # load data or cache
         if self.use_cache and osp.isfile(self.annot_path_cache):
@@ -99,7 +81,7 @@ class AGORA_MM(HumanDataset):
     def load_data(self, train_sample_interval=1):
 
         content = np.load(self.annot_path, allow_pickle=True)
-        # import ipdb;ipdb.set_trace()
+        
         try:
             frame_range = content['frame_range']
         except KeyError:
@@ -107,7 +89,7 @@ class AGORA_MM(HumanDataset):
                 np.array([[i, i + 1] for i in range(self.num_data)])
 
         num_examples = len(frame_range)
-        # import ipdb;ipdb.set_trace()
+        
         if 'meta' in content:
             meta = content['meta'].item()
             print('meta keys:', meta.keys())
@@ -180,7 +162,7 @@ class AGORA_MM(HumanDataset):
         valid_kps3d = False
         keypoints3d_mask = None
         valid_kps3d_mask = False
-        # import ipdb;ipdb.set_trace()
+        
         
         # processing keypoints
         for kps3d_key in KPS3D_KEYS:
@@ -205,7 +187,7 @@ class AGORA_MM(HumanDataset):
         if keypoints2d.shape[-1] == 3:
             valid_kps3d_mask = True
         occlusion = content['meta'][()]['occ'] if 'occ' in content['meta'][()] and len(content['meta'][()]['occ'])>0 else None
-        # import ipdb;ipdb.set_trace()
+        
         print('Done. Time: {:.2f}s'.format(time.time() - tic))
 
         datalist = []
@@ -223,7 +205,7 @@ class AGORA_MM(HumanDataset):
             
 
             bbox_list = bbox_xywh[frame_start:frame_end, :4]
-            # import ipdb;ipdb.set_trace()
+            
             valid_idx = []
             body_bbox_list = []
             
@@ -231,9 +213,9 @@ class AGORA_MM(HumanDataset):
                 bbox_ratio = cfg.bbox_ratio * 0.833  # preprocess body bbox is giving 1.2 box padding
             else:
                 bbox_ratio = 1.25
-            # import ipdb;ipdb.set_trace()
+            
             for bbox_i, bbox in enumerate(bbox_list):
-                # import ipdb;ipdb.set_trace()
+                
                 bbox = process_bbox(bbox,
                                     img_width=img_shape[1],
                                     img_height=img_shape[0],
@@ -293,7 +275,7 @@ class AGORA_MM(HumanDataset):
                 lhand_bbox_list.append(lhand_bbox)
                 rhand_bbox_list.append(rhand_bbox)
                 face_bbox_list.append(face_bbox)
-            # import ipdb;ipdb.set_trace()
+            
             # lhand_bbox = np.stack(lhand_bbox_list,axis=0)
             # rhand_bbox = np.stack(rhand_bbox_list,axis=0)
             # face_bbox = np.stack(face_bbox_list,axis=0)
@@ -305,7 +287,7 @@ class AGORA_MM(HumanDataset):
                 joint_cam = keypoints3d[valid_idx]
             else:
                 joint_cam = None
-            # import ipdb;ipdb.set_trace()
+            
             if 'leye_pose_0' in smplx.keys():
                 smplx.pop('leye_pose_0')
             if 'leye_pose_1' in smplx.keys():
@@ -332,7 +314,6 @@ class AGORA_MM(HumanDataset):
             rhand_bbox_valid = rhand_bbox_xywh[valid_idx,4]
             face_bbox_valid = face_bbox_xywh[valid_idx,4]
             
-            # TODO: set invalid if None?
             smplx_param['root_pose'] = smplx_param.pop('global_orient', None)
             smplx_param['shape'] = smplx_param.pop('betas', None)
             smplx_param['trans'] = smplx_param.pop('transl', np.zeros(3))
@@ -346,40 +327,16 @@ class AGORA_MM(HumanDataset):
                 smplx_param['shape'] = smplx_param.pop('betas_neutral')
                 # smplx_param['shape'] = np.zeros(10, dtype=np.float32)
 
-            # # TODO fix shape of poses
-            if self.__class__.__name__ == 'Talkshow':
-                smplx_param['body_pose'] = smplx_param['body_pose'].reshape(
-                    -1, 21, 3)
-                smplx_param['lhand_pose'] = smplx_param['lhand_pose'].reshape(
-                    -1, 15, 3)
-                smplx_param['rhand_pose'] = smplx_param['lhand_pose'].reshape(
-                    -1, 15, 3)
-                smplx_param['expr'] = smplx_param['expr'][:, :10]
-
-            if self.__class__.__name__ == 'BEDLAM':
-                smplx_param['shape'] = smplx_param['shape'][:, :10]
-            if self.__class__.__name__ == 'COCO_NA':
-                smplx_param['expr'] = None
-
-            if as_smplx == 'smpl':
-                smplx_param['shape'] = np.zeros(
-                    [valid_num, 10],
-                    dtype=np.float32)  # drop smpl betas for smplx
-                smplx_param['body_pose'] = smplx_param[
-                    'body_pose'][:, :21, :]  # use smpl body_pose on smplx
-            if as_smplx == 'smplh':
-                smplx_param['shape'] = np.zeros(
-                    [valid_num, 10],
-                    dtype=np.float32)  # drop smpl betas for smplx
-
             if smplx_param['lhand_pose'] is None or self.body_only == True:
                 smplx_param['lhand_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
                 smplx_param['lhand_valid'] = lhand_bbox_valid.astype(np.bool8)
+                
             if smplx_param['rhand_pose'] is None or self.body_only == True:
                 smplx_param['rhand_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
                 smplx_param['rhand_valid'] = rhand_bbox_valid.astype(np.bool8)
+            
             if smplx_param['expr'] is None or self.body_only == True:
                 smplx_param['face_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
@@ -439,24 +396,9 @@ class AGORA_MM(HumanDataset):
             gender[gender==gender_str]=gender_num
         gender = gender.astype(int)    
         
-        img_whole_bbox = np.array([0, 0, img_shape[1], img_shape[0]])
-        # img.shape: h,w,c, e.g. 1080,1920
-        # img_shape: h,w
-        # bbox: x,y,w,h
-        # cropped_img_shape=np.array([img_whole_bbox[3],img_whole_bbox[2]])
-
-        # self.normalize will convert the order
-        # for ida in range(100):
-        #     if os.path.exists('path%d.txt'%ida):
-        #         continue
-        #     else:
-        #         with open('path%d.txt'%ida,'w') as f:
-        #             f.writelines(img_path)
-        #         break
-        
+        img_whole_bbox = np.array([0, 0, img_shape[1], img_shape[0]])        
         img = load_img(img_path, order='BGR')
-        # if self.data_split == 'test':
-        #     cv2.imwrite('temp.png',img)
+
         num_person = len(data['bbox'])
         data_name = self.__class__.__name__
         img, img2bb_trans, bb2img_trans, rot, do_flip = \
@@ -478,7 +420,6 @@ class AGORA_MM(HumanDataset):
                     dtype=np.float32)
 
             joint_img = data['joint_img']
-            # TODO
             # do rotation on keypoints
             joint_img_aug, joint_cam_wo_ra, joint_cam_ra, joint_trunc = \
                 process_db_coord_batch_no_valid(
@@ -486,6 +427,8 @@ class AGORA_MM(HumanDataset):
                     self.joint_set['flip_pairs'], img2bb_trans, rot,
                     self.joint_set['joints_name'], smpl_x.joints_name,
                     cropped_img_shape)
+            joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:] * joint_trunc
+            
             # smplx coordinates and parameters
             smplx_param = data['smplx_param']
             smplx_pose, smplx_shape, smplx_expr, smplx_pose_valid, \
@@ -494,9 +437,6 @@ class AGORA_MM(HumanDataset):
                     smplx_param, do_flip, rot, as_smplx)
             # if cam not provided, we take joint_img as smplx joint 2d, 
             # which is commonly the case for our processed humandata
-            
-            # TODO temp fix keypoints3d for renbody
-            
             # change smplx_shape if use_betas_neutral
             # processing follows that in process_human_model_output
             
@@ -505,27 +445,11 @@ class AGORA_MM(HumanDataset):
                     num_person, -1)
                 smplx_shape[(np.abs(smplx_shape) > 3).any(axis=1)] = 0.
                 smplx_shape = smplx_shape.reshape(num_person, -1)
-
-            # SMPLX pose parameter validity
-            # for name in ('L_Ankle', 'R_Ankle', 'L_Wrist', 'R_Wrist'):
-            #     smplx_pose_valid[smpl_x.orig_joints_name.index(name)] = 0
-            #import ipdb;ipdb.set_trace()
-
-            smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
-            
             # SMPLX joint coordinate validity
             # for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
             #     smplx_joint_valid[smpl_x.joints_name.index(name)] = 0
             smplx_joint_valid = smplx_joint_valid[:, :, None]
-            # import ipdb;ipdb.set_trace()
 
-                
-            # import ipdb;ipdb.set_trace()
-            # TODO: check here
-            # if not (smplx_shape == 0).all():
-            #     smplx_shape_valid = True
-            # else:
-            #     smplx_shape_valid = False
             lhand_bbox_center_list = []
             lhand_bbox_valid_list = []
             lhand_bbox_size_list = []
@@ -542,23 +466,26 @@ class AGORA_MM(HumanDataset):
             body_bbox_size_list = []
             body_bbox_valid_list = []
             body_bbox_list = []
-            # hand and face bbox transform
-            # import ipdb;ipdb.set_trace()
 
             for i in range(num_person):
-                lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
-                    data['lhand_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                rhand_bbox, rhand_bbox_valid = self.process_hand_face_bbox(
-                    data['rhand_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                face_bbox, face_bbox_valid = self.process_hand_face_bbox(
-                    data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
+                
+                lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
+                    data['lhand_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                lhand_bbox_valid *= smplx_param['lhand_valid'][i]
+                
+                rhand_bbox, rhand_bbox_valid = self.process_hand_face_bbox(
+                    data['rhand_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                rhand_bbox_valid *= smplx_param['rhand_valid'][i]
+                
+                face_bbox, face_bbox_valid = self.process_hand_face_bbox(
+                    data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                face_bbox_valid *= smplx_param['face_valid'][i]
                 
                 if do_flip:
                     lhand_bbox, rhand_bbox = rhand_bbox, lhand_bbox
@@ -590,7 +517,7 @@ class AGORA_MM(HumanDataset):
                 body_bbox_center_list.append(body_bbox_center)
                 body_bbox_size_list.append(body_bbox_size)
                 body_bbox_valid_list.append(body_bbox_valid)
-            # import ipdb;ipdb.set_trace()
+            
             
             body_bbox = np.stack(body_bbox_list, axis=0)
             lhand_bbox = np.stack(lhand_bbox_list, axis=0)
@@ -613,7 +540,7 @@ class AGORA_MM(HumanDataset):
             if 'occlusion' in data:
                 occlusion = data['occlusion']
                 occ_mask = occlusion<97
-                # import ipdb;ipdb.set_trace()
+                
                 joint_img_aug[:,:,2] = joint_img_aug[:,:,2]*occ_mask[:,None]
                 joint_cam_wo_ra[:,:,3] = joint_cam_wo_ra[:,:,3]*occ_mask[:,None]
                 joint_trunc = joint_trunc*occ_mask[:,None,None]
@@ -633,16 +560,10 @@ class AGORA_MM(HumanDataset):
                 
             inputs = {'img': img}
 
-            joint_img_aug[:,:,2] = joint_img_aug[:,:,2]*joint_trunc[:,:,0]*body_bbox_valid[:,None]
+            joint_img_aug[:,:,2] = joint_img_aug[:,:,2] * body_bbox_valid[:,None]
             
             is_3D = float(False) if dummy_cord else float(True)
-            if self.__class__.__name__ == 'COCO_NA':
-                is_3D = False
-            if self.__class__.__name__ == 'GTA_Human2':
-                smplx_shape_valid = smplx_shape_valid*0
-            # if body_bbox_valid.sum() > 0:
-            # import ipdb;ipdb.set_trace()
-            # import ipdb;ipdb.set_trace()
+            
             targets = {
                 # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
                 'joint_img': joint_img_aug[body_bbox_valid>0], 
@@ -681,75 +602,7 @@ class AGORA_MM(HumanDataset):
                 'ori_shape':data['img_shape'],
                 'idx': idx
                
-            }
-            # else:
-            #     # no person in image, take only one
-            #     targets = {
-            #         # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
-            #         'joint_img': joint_img_aug[:1], 
-            #         # joint_cam, kp3d wo ra # raw kps3d probably without ra
-            #         'joint_cam': joint_cam_wo_ra[:1], 
-            #         # kps3d with body, face, hand ra
-            #         'smplx_joint_cam': joint_cam_ra[:1], 
-            #         'smplx_pose': smplx_pose[:1],
-            #         'smplx_shape': smplx_shape[:1],
-            #         'smplx_expr': smplx_expr[:1],
-            #         'lhand_bbox_center': lhand_bbox_center[:1], 
-            #         'lhand_bbox_size': lhand_bbox_size[:1],
-            #         'rhand_bbox_center': rhand_bbox_center[:1], 
-            #         'rhand_bbox_size': rhand_bbox_size[:1],
-            #         'face_bbox_center': face_bbox_center[:1], 
-            #         'face_bbox_size': face_bbox_size[:1],
-            #         'body_bbox_center': body_bbox_center[:1], 
-            #         'body_bbox_size': body_bbox_size[:1],
-            #         'body_bbox': body_bbox.reshape(-1,4)[:1],
-            #         'lhand_bbox': body_bbox.reshape(-1,4)[:1],
-            #         'rhand_bbox': body_bbox.reshape(-1,4)[:1],
-            #         'face_bbox': body_bbox.reshape(-1,4)[:1],
-            #         'gender': gender[:1]}
-
-            #     meta_info = {
-            #         'joint_trunc': joint_trunc[:1]*0,
-            #         'smplx_pose_valid': smplx_pose_valid[:1]*0,
-            #         'smplx_shape_valid': float(smplx_shape_valid)*0,
-            #         'smplx_expr_valid': smplx_expr_valid[:1]*0,
-            #         'is_3D': is_3D*0, 
-            #         'lhand_bbox_valid': lhand_bbox_valid[:1]*0,
-            #         'rhand_bbox_valid': rhand_bbox_valid[:1]*0, 
-            #         'face_bbox_valid': face_bbox_valid[:1]*0,
-            #         'body_bbox_valid': body_bbox_valid[:1]*0,
-            #         'img_shape': np.array(img.shape[:2]), 
-            #         'ori_shape':data['img_shape']
-            #     }
-            # if self.body_only:
-            #     meta_info = {
-            #         'joint_trunc': joint_trunc,
-            #         'smplx_pose_valid': smplx_pose_valid,
-            #         'smplx_shape_valid': float(smplx_shape_valid),
-            #         'smplx_expr_valid': smplx_expr_valid,
-            #         'is_3D': is_3D, 
-            #         'lhand_bbox_valid': lhand_bbox_valid,
-            #         'rhand_bbox_valid': rhand_bbox_valid, 
-            #         'face_bbox_valid': face_bbox_valid,
-            #         'body_bbox_valid': body_bbox_valid,
-            #         'img_shape': np.array(img.shape[:2]), 
-            #         'ori_shape':data['img_shape'],
-            #     }
-            # else:
-                # meta_info = {
-                #     'joint_trunc': joint_trunc,
-                #     'smplx_pose_valid': smplx_pose_valid,
-                #     'smplx_shape_valid': float(smplx_shape_valid),
-                #     'smplx_expr_valid': smplx_expr_valid,
-                #     'is_3D': is_3D, 
-                #     'lhand_bbox_valid': lhand_bbox_valid,
-                #     'rhand_bbox_valid': rhand_bbox_valid, 
-                #     'face_bbox_valid': face_bbox_valid,
-                #     'body_bbox_valid': body_bbox_valid,
-                #     'img_shape': np.array(img.shape[:2]), 
-                #     'ori_shape':data['img_shape']
-                # }
-            
+            }            
             result = {**inputs, **targets, **meta_info}
             
             result = self.normalize(result)
@@ -761,7 +614,7 @@ class AGORA_MM(HumanDataset):
         if self.data_split == 'test':
             self.cam_param = {}
             joint_cam = data['joint_cam']
-            # import ipdb;ipdb.set_trace()
+            
             if joint_cam is not None:
                 dummy_cord = False
                 joint_cam[:,:,:3] = joint_cam[:,:,:3] - joint_cam[
@@ -802,13 +655,9 @@ class AGORA_MM(HumanDataset):
                     num_person, -1)
                 smplx_shape[(np.abs(smplx_shape) > 3).any(axis=1)] = 0.
                 smplx_shape = smplx_shape.reshape(num_person, -1)
-            smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
+            
             smplx_joint_valid = smplx_joint_valid[:, :, None]
-
-            # if not (smplx_shape == 0).all():
-            #     smplx_shape_valid = True
-            # else:
-            #     smplx_shape_valid = False
+            
             lhand_bbox_center_list = []
             lhand_bbox_valid_list = []
             lhand_bbox_size_list = []
@@ -836,7 +685,7 @@ class AGORA_MM(HumanDataset):
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
-                # import ipdb;ipdb.set_trace()
+                
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)                
@@ -1065,49 +914,7 @@ class AGORA_MM(HumanDataset):
                 writer.writerow(new_line)
                 self.save_idx += 1
             
-            vis = False
-            if vis:
-                import mmcv
-                img = (out['img']).transpose(0,2,3,1)
-                img = mmcv.imdenormalize(
-                    img=img[0], 
-                    mean=np.array([123.675, 116.28, 103.53]), 
-                    std=np.array([58.395, 57.12, 57.375]),
-                    to_bgr=True).astype(np.uint8)
-                from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                # import ipdb;ipdb.set_trace()
-                visualize_kp2d(
-                    out['smplx_joint_proj'][0][None],
-                    image_array=img[None].copy(),
-                    disable_limbs=True,
-                    overwrite=True,
-                    output_path='./figs/pred2d'
-                )
-                from pytorch3d.io import save_obj
-                save_obj('temp.obj',verts=out['smplx_mesh_cam'][0],faces=torch.tensor([]))
-            # MPVPE from face vertices
-            mesh_gt_face = mesh_gt[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face = mesh_out[:, smpl_x.face_vertex_idx, :]
-            mesh_out_face_align = \
-                mesh_out_face - \
-                np.dot(smpl_x.J_regressor, mesh_out).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :] + \
-                np.dot(smpl_x.J_regressor, mesh_gt).transpose(1,0,2)[:, smpl_x.J_regressor_idx['neck'], None, :]
-            eval_result['mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
-            mesh_out_face_align = rigid_align_batch(mesh_out_face, mesh_gt_face)
-            eval_result['pa_mpvpe_face'].extend(
-                np.sqrt(np.sum(
-                    (mesh_out_face_align - mesh_gt_face)**2, -1)).mean(-1) * 1000)
             
-        # for k,v in eval_result.items():
-        #     if k != 'img_path' and k != 'ann_idx':
-        #         # import ipdb;ipdb.set_trace()
-        #         if len(v)>1:
-        #             eval_result[k] = np.concatenate(v,axis=0)
-        #         else:
-        #             eval_result[k] = np.array(v)
-
         return eval_result
 
 

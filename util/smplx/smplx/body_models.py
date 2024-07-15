@@ -1132,7 +1132,7 @@ class SMPLX(SMPLH):
 
         # Add the mean pose of the model. Does not affect the body, only the
         # hands when flat_hand_mean == False
-        # import ipdb;ipdb.set_trace()
+        
         full_pose += self.pose_mean
 
         batch_size = max(betas.shape[0], global_orient.shape[0],
