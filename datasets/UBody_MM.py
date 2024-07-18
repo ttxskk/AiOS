@@ -310,6 +310,7 @@ class UBody_MM(HumanDataset):
         is_crowd = meta['iscrowd']
         keypoints_valid = content['keypoints2d_ubody'][:,:,2].sum(-1)!=0
         bbox_xywh = content['bbox_xywh']
+        
         if 'smplx' in content:
             smplx = content['smplx'].item()
             as_smplx = 'smplx'
@@ -375,7 +376,6 @@ class UBody_MM(HumanDataset):
         for i in tqdm.tqdm(range(int(num_examples))):
             if self.data_split == 'train' and i % self.sample_interval != 0:
                 continue
-            
             frame_start, frame_end = frame_range[i]
             img_path = osp.join(self.img_dir, image_path[frame_start])
             vid_name = img_path.split('/')[-2]
@@ -392,7 +392,7 @@ class UBody_MM(HumanDataset):
             unique_bbox_idx = np.unique(bbox_list,axis=0,return_index=True)[1]
             unique_bbox_idx.sort()
             unique_bbox_list = bbox_list[unique_bbox_idx]
-
+            
             valid_idx = []
             body_bbox_list = []
             
@@ -639,6 +639,7 @@ class UBody_MM(HumanDataset):
                     self.joint_set['joints_name'], smpl_x.joints_name,
                     cropped_img_shape)
             joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:] * joint_trunc
+
             
             # smplx coordinates and parameters
             smplx_param = data['smplx_param']
@@ -869,7 +870,7 @@ class UBody_MM(HumanDataset):
             smplx_joint_valid = smplx_joint_valid[:, :, None]
             # smplx_pose = smplx_pose*smplx_pose_valid
             # smplx_expr = smplx_expr*smplx_expr_valid
-            
+
             # if not (smplx_shape == 0).all():
             #     smplx_shape_valid = True
             # else:

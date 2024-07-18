@@ -554,7 +554,6 @@ class HumanDataset(torch.utils.data.Dataset):
                     smplx_pose_valid[:, smpl_x.orig_joints_name.index(name)] = 0
                 for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
                      smplx_joint_valid[:,smpl_x.joints_name.index(name)] = 0
-            
     
             lhand_bbox_center_list = []
             lhand_bbox_valid_list = []
@@ -943,9 +942,9 @@ class HumanDataset(torch.utils.data.Dataset):
             # print(bbox)
             # bbox[:, 0] = bbox[:, 0] / input_img_shape[1] * cfg.output_hm_shape[2]
             # bbox[:, 1] = bbox[:, 1] / input_img_shape[0] * cfg.output_hm_shape[1]
-            
             bbox[:, 0] /= input_img_shape[1]
             bbox[:, 1] /= input_img_shape[0]
+
             
             # make box a rectangle without rotation
             if np.max(bbox[:,0])<=0 or np.min(bbox[:,0])>=1 or np.max(bbox[:,1])<=0 or np.min(bbox[:,1])>=1:

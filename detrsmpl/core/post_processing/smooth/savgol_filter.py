@@ -25,7 +25,6 @@ class SGFilter:
     Returns:
         smoothed poses (np.ndarray, torch.tensor)
     """
-
     def __init__(self, window_size=11, polyorder=2):
         super(SGFilter, self).__init__()
 
@@ -62,6 +61,7 @@ class SGFilter:
         for i in range(C):
             smooth_poses[..., i] = signal.savgol_filter(
                 x[..., i], window_size, polyorder, axis=0)
+
 
         if isinstance(x_type, torch.Tensor):
             # we also return tensor by default

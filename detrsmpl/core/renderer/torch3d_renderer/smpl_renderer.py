@@ -258,7 +258,6 @@ class SMPLRenderer(BaseRenderer):
                     im = cv2.resize(im, self.final_resolution, cv2.INTER_CUBIC)
                 # cv2.imwrite(osp.join(folder, self.out_img_format % real_idx),
                 #             im)
-                
                 # cv2.imwrite(self.output_path+'temp.jpg', im)
                 cv2.imwrite(self.output_path, im)
 

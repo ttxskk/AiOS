@@ -584,17 +584,16 @@ class SetCriterion(nn.Module):
         """Compute loss for 2d keypoints."""
         device = outputs['pred_logits'].device
         indices = indices[0]
-        
         pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()#.detach()
         pred_cam = outputs['pred_smpl_cam'][idx].float()
         targets_kp2d = torch.cat([t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)], dim=0)
 
         keypoints2d_conf =  targets_kp2d[:,:,2:].clone()
-
         targets_kp2d = targets_kp2d[:, :, :2].float()
         targets_kp2d[:,:,0] = targets_kp2d[:,:,0]/cfg.output_hm_shape[2]
         targets_kp2d[:,:,1] = targets_kp2d[:,:,1]/cfg.output_hm_shape[1]
         img_wh =  torch.cat([data_batch['img_shape'][i][None] for i in idx[0]], dim=0).flip(-1)
+
         pred_smpl_kp2d = project_points_new(
             points_3d=pred_smpl_kp3d,
             pred_cam=pred_cam,
@@ -618,6 +617,7 @@ class SetCriterion(nn.Module):
                                    targets_kp2d,
                                    reduction='none')
         loss_smpl_kp2d = loss_smpl_kp2d * keypoints2d_conf
+
 
         if face_hand_kpt:
             losses['loss_smpl_body_kp2d'] = torch.sum(loss_smpl_kp2d[:, body_idx, :])  / (body_kp2d_valid.sum() + 1e-6)
@@ -684,6 +684,7 @@ class SetCriterion(nn.Module):
             else:
                 losses['loss_lhand_bbox'] = loss_lhand_bbox.sum() * 0
                 losses['loss_lhand_giou'] = loss_lhand_giou.sum() * 0
+
            
         
         if 'pred_rhand_boxes' in outputs and face_hand_box:
@@ -1288,7 +1289,7 @@ class SetCriterion_Box(nn.Module):
         face_idx = smpl_x.joint_part['face']
         lhand_idx = smpl_x.joint_part['lhand']
         rhand_idx = smpl_x.joint_part['rhand']
-       
+        
         loss_smpl_kp3d = F.l1_loss(pred_smpl_kp3d,
                                    targets_smpl_kp3d,
                                    reduction='none')
@@ -1426,8 +1427,8 @@ class SetCriterion_Box(nn.Module):
         
         pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()#.detach()
         pred_cam = outputs['pred_smpl_cam'][idx].float()
-        targets_kp2d = torch.cat([t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)], dim=0)
 
+        targets_kp2d = torch.cat([t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)], dim=0)
         keypoints2d_conf =  targets_kp2d[:,:,2:].clone()
 
         targets_kp2d = targets_kp2d[:, :, :2].float()

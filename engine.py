@@ -65,6 +65,7 @@ def train_one_epoch(model: torch.nn.Module,
     print_freq = 10
 
     _cnt = 0
+
     for step_i, data_batch in enumerate(metric_logger.log_every(data_loader,
                                               print_freq,
                                               header,

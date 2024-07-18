@@ -486,7 +486,7 @@ class AGORA_MM(HumanDataset):
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
                 face_bbox_valid *= smplx_param['face_valid'][i]
-                
+              
                 if do_flip:
                     lhand_bbox, rhand_bbox = rhand_bbox, lhand_bbox
                     lhand_bbox_valid, rhand_bbox_valid = rhand_bbox_valid, lhand_bbox_valid

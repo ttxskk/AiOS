@@ -22,7 +22,6 @@ class Gaus1dFilter:
     Returns:
         np.ndarray: Smoothed poses
     """
-
     def __init__(self, window_size=11, sigma=4):
         super(Gaus1dFilter, self).__init__()
 
@@ -45,7 +44,6 @@ class Gaus1dFilter:
                 x = x.cpu().numpy()
             else:
                 x = x.numpy()
-
         # smoothed = np.array(
         #     [signal.medfilt(param, window_size) for param in x.T]).T
         # smooth_poses = np.array(
@@ -59,6 +57,7 @@ class Gaus1dFilter:
         for k in range(smoothed.shape[1]):
             for c in range(smoothed.shape[2]):
                 smooth_poses[:, k, c] = gaussian_filter1d(smoothed[:, k, c], sigma=self.sigma)
+
 
         if isinstance(x_type, torch.Tensor):
             # we also return tensor by default

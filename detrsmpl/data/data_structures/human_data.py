@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from mmcv.utils import print_log
 
-from mmhuman3d.utils.path_utils import (
+from detrsmpl.utils.path_utils import (
     Existence,
     check_path_existence,
     check_path_suffix,
@@ -116,6 +116,7 @@ _HumanData_SUPPORTED_KEYS = {
     # 'config': {
     #     'type': dict,
     # },
+
 }
 
 
@@ -1211,6 +1212,7 @@ class HumanData(dict):
             elif key.startswith('keypoints') and\
                     key.endswith('_mask') and \
                     'smplx_trunc' not in key:
+
                 new_mask = value_0 * value_1
                 ret_human_data[key] = new_mask
                 continue

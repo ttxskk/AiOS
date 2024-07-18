@@ -132,13 +132,12 @@ test_result/
 
 
 # Visualization
-*.mp4
+# *.mp4
 *.png
 *.gif
 *.jpg
 *.obj
 *.ply
-*.txt
 !demo/resources/*
 
 # Resources as exception

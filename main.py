@@ -93,8 +93,6 @@ def main(args):
     torch.distributed.barrier()
     from config.config import cfg
     
-
-
     if args.options is not None:
         cfg.merge_from_dict(args.options)
     if args.rank == 0:
@@ -181,7 +179,6 @@ def main(args):
     optimizer = torch.optim.AdamW(param_dicts,
                                   lr=args.lr,
                                   weight_decay=args.weight_decay)
-    
     logger.info('Creating dataset...')
     if not args.eval:
         trainset= []

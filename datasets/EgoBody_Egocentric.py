@@ -157,7 +157,6 @@ class EgoBody_Egocentric(HumanDataset):
                 new_line = [ann_idx[n], img_path[n], eval_result['mpvpe_all'][-1], eval_result['pa_mpvpe_all'][-1]]
                 writer.writerow(new_line)
             
-
         return eval_result
 
 
