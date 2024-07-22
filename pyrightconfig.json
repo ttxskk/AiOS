@@ -1,0 +1,12 @@
+{
+    "exclude": [
+        "datasets",
+        "osx/dataset",
+        "osx/output",
+        "data/**",
+        "**/__pycache__",
+        "**/.vscode",
+        "**/.dist_test",
+        "weichen_data"
+    ]
+}

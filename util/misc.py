@@ -593,85 +593,54 @@ def save_on_master(*args, **kwargs):
 #     print('End torch.distributed.barrier()')
 #     setup_for_distributed(args.rank == 0)
 
-def init_distributed_mode(args):
-    # if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != '':
-    #     local_world_size = int(os.environ['WORLD_SIZE'])
-    #     args.world_size = args.world_size * local_world_size
-    #     args.gpu = args.local_rank = int(os.environ['LOCAL_RANK'])
-    #     args.rank = args.rank * local_world_size + args.local_rank
-    #     print('world size: {}, rank: {}, local rank: {}'.format(args.world_size, args.rank, args.local_rank))
-    #     print(json.dumps(dict(os.environ), indent=2))
-    # elif 'SLURM_PROCID' in os.environ:
-    #     args.rank = int(os.environ['SLURM_PROCID'])
-    #     args.gpu = args.local_rank = int(os.environ['SLURM_LOCALID'])
-    #     args.world_size = int(os.environ['SLURM_NPROCS'])
-        
-    #     print('world size: {}, world rank: {}, local rank: {}, device_count: {}'.format(args.world_size, args.rank, args.local_rank, torch.cuda.device_count()))
-    #     print("os.environ['SLURM_JOB_NODELIST']:", os.environ['SLURM_JOB_NODELIST'])
-    #     print(json.dumps(dict(os.environ), indent=2))
-    #     print('args:')
-    #     print(json.dumps(vars(args), indent=2))
-    # else:
-    #     local_world_size = int(os.environ['WORLD_SIZE'])
-    #     args.world_size = args.world_size * local_world_size
-    #     args.gpu = args.local_rank = int(os.environ['LOCAL_RANK'])
-    #     args.rank = args.rank * local_world_size + args.local_rank
-    #     print('world size: {}, rank: {}, local rank: {}'.format(args.world_size, args.rank, args.local_rank))
-    #     print(json.dumps(dict(os.environ), indent=2))
+def init_distributed_mode_ssc(args):
     init_dist('pytorch')
     args.rank, args.world_size = get_dist_info()
-    #  = world_size
     args.local_rank = args.gpu = int(os.environ['LOCAL_RANK']) # args.rank % world_size
-    
-    # print("world_size:{} rank:{} local_rank:{}".format(args.world_size, args.rank, args.local_rank))
     args.distributed = True
     torch.cuda.set_device(args.local_rank)
-    # args.dist_backend = 'nccl'
-    # print('| distributed init (rank {}): {}'.format(args.rank, args.dist_url), flush=True)
-    # torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-    #                                      world_size=args.world_size, rank=args.rank)
     print("Before torch.distributed.barrier()")
     torch.distributed.barrier()
     print("End torch.distributed.barrier()")
     setup_for_distributed(args.rank == 0)
 
-# def init_distributed_mode(args):
-#     if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != '':
-#         local_world_size = int(os.environ['WORLD_SIZE'])
-#         args.world_size = args.world_size * local_world_size
-#         args.gpu = args.local_rank = int(os.environ['LOCAL_RANK'])
-#         args.rank = args.rank * local_world_size + args.local_rank
-#         print('world size: {}, rank: {}, local rank: {}'.format(args.world_size, args.rank, args.local_rank))
-#         print(json.dumps(dict(os.environ), indent=2))
-#     elif 'SLURM_PROCID' in os.environ:
-#         args.rank = int(os.environ['SLURM_PROCID'])
-#         args.gpu = args.local_rank = int(os.environ['SLURM_LOCALID'])
-#         args.world_size = int(os.environ['SLURM_NPROCS'])
+def init_distributed_mode(args):
+    if 'WORLD_SIZE' in os.environ and os.environ['WORLD_SIZE'] != '':
+        local_world_size = int(os.environ['WORLD_SIZE'])
+        args.world_size = args.world_size * local_world_size
+        args.gpu = args.local_rank = int(os.environ['LOCAL_RANK'])
+        args.rank = args.rank * local_world_size + args.local_rank
+        print('world size: {}, rank: {}, local rank: {}'.format(args.world_size, args.rank, args.local_rank))
+        print(json.dumps(dict(os.environ), indent=2))
+    elif 'SLURM_PROCID' in os.environ:
+        args.rank = int(os.environ['SLURM_PROCID'])
+        args.gpu = args.local_rank = int(os.environ['SLURM_LOCALID'])
+        args.world_size = int(os.environ['SLURM_NPROCS'])
         
-#         print('world size: {}, world rank: {}, local rank: {}, device_count: {}'.format(args.world_size, args.rank, args.local_rank, torch.cuda.device_count()))
-#         print("os.environ['SLURM_JOB_NODELIST']:", os.environ['SLURM_JOB_NODELIST'])
-#         print(json.dumps(dict(os.environ), indent=2))
-#         print('args:')
-#         print(json.dumps(vars(args), indent=2))
-#     else:
-#         print('Not using distributed mode')
-#         args.distributed = False
-#         args.world_size = 1
-#         args.rank = 0
-#         args.local_rank = 0
-#         return
+        print('world size: {}, world rank: {}, local rank: {}, device_count: {}'.format(args.world_size, args.rank, args.local_rank, torch.cuda.device_count()))
+        print("os.environ['SLURM_JOB_NODELIST']:", os.environ['SLURM_JOB_NODELIST'])
+        print(json.dumps(dict(os.environ), indent=2))
+        print('args:')
+        print(json.dumps(vars(args), indent=2))
+    else:
+        print('Not using distributed mode')
+        args.distributed = False
+        args.world_size = 1
+        args.rank = 0
+        args.local_rank = 0
+        return
 
-#     print("world_size:{} rank:{} local_rank:{}".format(args.world_size, args.rank, args.local_rank))
-#     args.distributed = True
-#     torch.cuda.set_device(args.local_rank)
-#     args.dist_backend = 'nccl'
-#     print('| distributed init (rank {}): {}'.format(args.rank, args.dist_url), flush=True)
-#     torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-#                                          world_size=args.world_size, rank=args.rank)
-#     print("Before torch.distributed.barrier()")
-#     torch.distributed.barrier()
-#     print("End torch.distributed.barrier()")
-#     setup_for_distributed(args.rank == 0)
+    print("world_size:{} rank:{} local_rank:{}".format(args.world_size, args.rank, args.local_rank))
+    args.distributed = True
+    torch.cuda.set_device(args.local_rank)
+    args.dist_backend = 'nccl'
+    print('| distributed init (rank {}): {}'.format(args.rank, args.dist_url), flush=True)
+    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                         world_size=args.world_size, rank=args.rank)
+    print("Before torch.distributed.barrier()")
+    torch.distributed.barrier()
+    print("End torch.distributed.barrier()")
+    setup_for_distributed(args.rank == 0)
     
 @torch.no_grad()
 def accuracy(output, target, topk=(1, )):

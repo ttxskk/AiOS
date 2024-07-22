@@ -33,26 +33,15 @@ from detrsmpl.data.data_structures.multi_human_data import MultiHumanData
 class INFERENCE_AGORA(torch.utils.data.Dataset):
     def __init__(self, img_dir=None,out_path=None):
 
-        
-        # self.humandata = MultiHumanData()
-        # self.humandata.load('data/multihuman_data/agora_validation_multi_3840_1010.npz')
-        # # self.humandata.load('data/preprocessed_npz/multihuman_data/agora_validation_3840_230815_010175_full.npz')
-        
-        # self.val_path = sorted(set(self.humandata['image_path']),key=self.humandata['image_path'].index)
-        
-    
-        
         self.img_dir = img_dir
-
-        
         self.out_path =  out_path # cfg.exp_name
         assert not os.path.exists(os.path.join(self.out_path,'predictions')), "Predictions path already exists: {}".format(self.out_path)
 
     
         if self.img_dir.split('/')[-1] == 'test':
-            self.score_threshold = 0.73
+            self.score_threshold = cfg.threshold if 'threshold' in cfg else 0.7 
         elif self.img_dir.split('/')[-1] == 'validation':
-            self.score_threshold = 0.1
+            self.score_threshold = cfg.threshold if 'threshold' in cfg else 0.1
         self.resolution = [720 ,1280] # AGORA test
         # self.resolution = [1200, 1600] # EHF
         self.img_paths = sorted(glob(self.img_dir+'/*',recursive=True))        

@@ -292,8 +292,6 @@ def evaluate(model,
     # return results
 
 
-
-
 @torch.no_grad()
 def inference(model,
              criterion,
@@ -327,23 +325,10 @@ def inference(model,
     if not useCats:
         print('useCats: {} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'.format(
             useCats))
-
-    _cnt = 0
-    results = []
+        
     dataset = data_loader.dataset
     rank, world_size = get_dist_info()
-
-    if rank == 0:
-        # Check if tmpdir is valid for cpu_collect
-        if (not gpu_collect) and (tmpdir is not None and osp.exists(tmpdir)):
-            raise OSError((f'The tmpdir {tmpdir} already exists.',
-                           ' Since tmpdir will be deleted after testing,',
-                           ' please make sure you specify an empty one.'))
-        prog_bar = mmcv.ProgressBar(len(dataset))
     time.sleep(2)
-    # i=0
-    cur_sample_idx = 0
-    eval_result = {}
     for data_batch in metric_logger.log_every(
         data_loader, 10, header, logger=logger):
         # i = i+1
@@ -357,16 +342,11 @@ def inference(model,
         orig_target_sizes = torch.stack([t["size"] for t in targets], dim=0)
         result = postprocessors['bbox'](outputs, orig_target_sizes, targets, data_batch_nc)    
 
-        eval_out = dataset.inference(result)
-        eval_result.update(eval_out)
-    eval_result.update(eval_out)
+        dataset.inference(result)
 
-    time.sleep(3)
     if rank == 0 and args.to_vid:
-        # img_tmp = dataset.img_path[0]
         if hasattr(dataset,'result_img_dir'):
-            import shutil
-            images_to_video(dataset.result_img_dir, os.path.join(dataset.output_path,dataset.img_name+'_demo.mp4'),remove_raw_file=False, fps=30)
+            images_to_video(dataset.result_img_dir, os.path.join(dataset.output_path, dataset.img_name+'_demo.mp4'),remove_raw_file=False, fps=30)
             # shutil.rmtree(dataset.result_img_dir)
             # shutil.rmtree(dataset.tmp_dir)
 

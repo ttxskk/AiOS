@@ -21,6 +21,7 @@ from util.logger import setup_logger
 from util.config import DictAction, cfg
 from util.utils import ModelEma
 
+import debugpy
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector',
                                      add_help=False)
@@ -87,10 +88,12 @@ def build_model_main(args, cfg):
 
 def main(args):
     
-    utils.init_distributed_mode(args)
+    utils.init_distributed_mode_ssc(args)
+    # if args.rank == 0:
+    #     debugpy.listen(("0.0.0.0", 5681))
+    #     debugpy.wait_for_client()
     print('Loading config file from {}'.format(args.config_file))
     shutil.copy2(args.config_file,'config/aios_smplx.py')
-    torch.distributed.barrier()
     from config.config import cfg
     
     if args.options is not None:
@@ -270,11 +273,11 @@ def main(args):
             for k, v in utils.clean_state_dict(checkpoint).items()
             if check_keep(k, _ignorekeywordlist)
         })
-        logger.info('Ignore keys: {}'.format(json.dumps(ignorelist, indent=2)))
-        # Change This
-        _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
-        print('loading')
-        logger.info(str(_load_output))
+        # logger.info('Ignore keys: {}'.format(json.dumps(ignorelist, indent=2)))
+        # # Change This
+        # _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
+        # print('loading')
+        # logger.info(str(_load_output))
 
         if args.use_ema:
             if 'ema_model' in checkpoint:
@@ -282,8 +285,8 @@ def main(args):
             else:
                 del ema_m
                 ema_m = ModelEma(model, args.ema_decay)    
-        _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
-        logger.info(str(_load_output))
+        model_without_ddp.load_state_dict(_tmp_st, strict=False)
+
 
 
     if args.eval:

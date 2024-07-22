@@ -818,7 +818,6 @@ class SetCriterion(nn.Module):
             'smpl_beta': self.loss_smpl_beta,
             'smpl_expr': self.loss_smpl_expr,
             'smpl_kp2d': self.loss_smpl_kp2d,
-            'smpl_kp2d_ba': self.loss_smpl_kp2d_ba,
             'smpl_kp3d_ra': self.loss_smpl_kp3d_ra,
             'smpl_kp3d': self.loss_smpl_kp3d,
             'labels': self.loss_labels,
@@ -880,8 +879,7 @@ class SetCriterion(nn.Module):
             indices0_copy = indices
             indices_list = []
         losses = {}
-        smpl_loss = ['smpl_pose', 'smpl_beta', 'smpl_expr', 'smpl_kp2d',
-                     'smpl_kp2d_ba', 'smpl_kp3d', 'smpl_kp3d_ra']
+        smpl_loss = ['smpl_pose', 'smpl_beta', 'smpl_expr', 'smpl_kp2d', 'smpl_kp3d', 'smpl_kp3d_ra']
 
         for loss in self.losses:
             kwargs = {}
@@ -953,7 +951,7 @@ class SetCriterion(nn.Module):
                 if loss in ['dn_bbox', 'dn_label', 'keypoints']:
                     continue
                 if loss in [
-                        'smpl_pose', 'smpl_beta', 'smpl_kp2d_ba', 'smpl_kp2d',
+                        'smpl_pose', 'smpl_beta', 'smpl_kp2d',
                         'smpl_kp3d_ra', 'smpl_kp3d', 'smpl_expr'
                 ]:
                     continue
@@ -1472,206 +1470,6 @@ class SetCriterion_Box(nn.Module):
             losses['loss_smpl_face_kp2d'] = 0*torch.sum(loss_smpl_kp2d[:, face_idx, :]) / (face_kp2d_valid.sum() + 1e-6)
         return losses
 
-    def loss_smpl_kp2d_ba(self,
-                          outputs,
-                          targets,
-                          indices,
-                          idx,
-                          num_boxes,
-                          data_batch,
-                          focal_length=5000.,
-                          has_keypoints2d=None,
-                        face_hand_kpt=False):
-        """Compute loss for 2d keypoints."""
-        device = outputs['pred_logits'].device
-        indices = indices[0]
-        # pdb.set_trace()
-        pred_smpl_kp3d = outputs['pred_smpl_kp3d'][idx].float()#.detach()
-        pred_cam = outputs['pred_smpl_cam'][idx].float()
-
-        # pdb.set_trace()
-
-        # max_img_res = orig_img_res.max(-1)[0]
-        # torch.cat([ torch.Tensor([orig_img_res[0]]*9), torch.Tensor([orig_img_res[1]]*9)], 0)
-        # torch.cat([orig_img_res[i][None].repeat(num,1) for i, num in enumerate(instance_num)], 0)
-
-        # orig_img_res = torch.Tensor([t['orig_size'] for t, (_, i) in zip(targets, indices)]).type_as(pred_smpl_kp3d)
-        # orig_img_res = torch.Tensor([target['orig_size'] for target in targets]).type_as(pred_smpl_kp3d)
-        # max_img_res = torch.cat([torch.full_like(src, i) for i, (src, _) in zip(max_img_res, indices)]).type_as(pred_smpl_kp3d)
-        valid_num=0
-        for indice in indices[0]:
-            valid_num+=len(indice)
-        targets_kp2d = torch.cat(
-            [t[i] for t, (_, i) in zip(data_batch['joint_img'], indices)],
-            dim=0)
-        losses = {}
-
-        
-        
-        keypoints2d_conf =  targets_kp2d[:,:,2:].clone()
-        targets_kp2d = targets_kp2d[:,:,:2]
-        
-        keypoints2d_conf = keypoints2d_conf.repeat(1, 1, 2)
-        targets_kp2d = targets_kp2d[:, :, :2].float()
-        targets_kp2d[:, :, 0] = targets_kp2d[:, :, 0] / cfg.output_hm_shape[2]
-        targets_kp2d[:, :, 1] = targets_kp2d[:, :, 1] / cfg.output_hm_shape[1]
-        # targets_kp2d = targets_kp2d * 2 - 1
-        img_wh =  torch.cat([data_batch['img_shape'][i][None] for i in idx[0]], dim=0).flip(-1)
-
-        pred_smpl_kp2d = project_points_new(
-            points_3d=pred_smpl_kp3d,
-            pred_cam=pred_cam,
-            focal_length=focal_length,
-            camera_center=img_wh/2
-        )
-
-        pred_smpl_kp2d = pred_smpl_kp2d / img_wh[:, None]
-        
-        if valid_num == 0:
-            losses['loss_smpl_body_kp2d_ba'] = 0 + pred_smpl_kp2d.sum()*0
-
-            losses['loss_smpl_lhand_kp2d_ba'] = 0 + pred_smpl_kp2d.sum()*0
-        
-            losses['loss_smpl_rhand_kp2d_ba'] = 0 + pred_smpl_kp2d.sum()*0
-        
-            losses['loss_smpl_face_kp2d_ba'] = 0 + pred_smpl_kp2d.sum()*0
-            return losses        
-        # rhand bbox
-        rhand_bbox_valid = torch.cat(
-            [t[i] for t, (_, i) in zip(data_batch['rhand_bbox_valid'], indices) ], dim=0)
-        rhand_bbox_gt = torch.cat(
-            [t['rhand_boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-        rhand_bbox_gt = (box_ops.box_cxcywh_to_xyxy(rhand_bbox_gt).
-                         reshape(-1,2,2)*img_wh[:, None]).reshape(-1, 4)
-        num_rhand_bbox = rhand_bbox_valid.sum()
-        # lhand bbox
-        lhand_bbox_valid = torch.cat([
-            t[i] for t, (_, i) in zip(data_batch['lhand_bbox_valid'], indices)], dim=0)
-        lhand_bbox_gt = torch.cat(
-            [t['lhand_boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-        lhand_bbox_gt = (box_ops.box_cxcywh_to_xyxy(lhand_bbox_gt).
-                         reshape(-1,2,2)*img_wh[:, None]).reshape(-1, 4)
-        num_lhand_bbox = lhand_bbox_valid.sum()
-        # face bbox
-        face_bbox_valid = torch.cat(
-            [t[i] for t, (_, i) in zip(data_batch['face_bbox_valid'], indices)], dim=0)
-        face_bbox_gt = torch.cat(
-            [t['face_boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-        face_bbox_gt = (box_ops.box_cxcywh_to_xyxy(face_bbox_gt).
-                        reshape(-1,2,2)*img_wh[:, None]).reshape(-1, 4)
-        num_face_bbox = face_bbox_valid.sum()
-        img_shape = torch.cat(
-            [t[None].repeat(len(i), 1) for t, (_, i) in zip(data_batch['img_shape'], indices)], dim=0)
-        
-        # joint_proj = (joint_proj / 2 + 0.5)
-        # joint_proj[:, :, 0] = joint_proj[:, :, 0] * img_shape[:, 1:]
-        # joint_proj[:, :, 1] = joint_proj[:, :, 1] * img_shape[:, :1]
-
-        if not (lhand_bbox_valid + rhand_bbox_valid + face_bbox_valid == 0).all():
-            for part_name, bbox in (
-                    ('lhand', lhand_bbox_gt), 
-                    ('rhand', rhand_bbox_gt), 
-                    ('face', face_bbox_gt)):
-                
-                x = targets_kp2d[:, smpl_x.joint_part[part_name], 0]
-                y = targets_kp2d[:, smpl_x.joint_part[part_name], 1]
-                # trunc = joint_trunc[:, smpl_x.joint_part[part_name], 0]
-                trunc = keypoints2d_conf[:, smpl_x.joint_part[part_name], 0].clone()
-                # x in [0, 1]? bbox in [0, 1]. 
-                x -= (bbox[:, None, 0] / img_shape[:, 1:])
-                # x 
-                x *= (img_shape[:, 1:] / (bbox[:, None, 2] - bbox[:, None, 0] + 1e-6))
-                
-                y -= (bbox[:, None, 1] / img_shape[:, :1])
-                y *= (img_shape[:, :1] / (bbox[:, None, 3] - bbox[:, None, 1] + 1e-6))
-                # transformed to 0-1 bbox space
-
-                trunc *= ((x >= 0) * (x <= 1) *
-                          (y >= 0) * (y <= 1))
-
-                
-                coord = torch.stack((x, y), 2)
-                
-
-                targets_kp2d = torch.cat(
-                    (targets_kp2d[:, :smpl_x.joint_part[part_name][0], :], coord,
-                     targets_kp2d[:, smpl_x.joint_part[part_name][-1] + 1:, :]),
-                    1)
-                
-                x_pred = pred_smpl_kp2d[:, smpl_x.joint_part[part_name], 0]
-                y_pred = pred_smpl_kp2d[:, smpl_x.joint_part[part_name], 1]
-                # bbox: xyxy img_shape: hw
-                x_pred -= (bbox[:, None, 0] / img_shape[:, 1:])
-                x_pred *= (img_shape[:, 1:] / (bbox[:, None, 2] - bbox[:, None, 0] + 1e-6))
-                
-                y_pred -= (bbox[:, None, 1] / img_shape[:, :1])
-                y_pred *= (img_shape[:, :1] / (bbox[:, None, 3] - bbox[:, None, 1] + 1e-6))
-
-                coord_pred = torch.stack((x_pred, y_pred), 2)
-                trans = []
-
-                for bid in range(coord_pred.shape[0]):
-                    mask = trunc[bid] == 1
-                    
-                    if torch.sum(mask) == 0:
-                        trans.append(torch.zeros((2)).float().cuda())
-                    else:
-                        trans.append(
-                            (-coord_pred[bid, mask, :2] + targets_kp2d[:, smpl_x.joint_part[part_name], :][bid, mask, :2]).mean(0))
-                trans = torch.stack(trans)[:, None, :]
-                
-                coord_pred = coord_pred + trans  # global translation alignment
-                pred_smpl_kp2d = torch.cat(
-                    (pred_smpl_kp2d[:, :smpl_x.joint_part[part_name][0], :], coord_pred,
-                     pred_smpl_kp2d[:, smpl_x.joint_part[part_name][-1] + 1:, :]),
-                    1)
-            
-        loss_smpl_kp2d_ba = F.l1_loss(pred_smpl_kp2d,
-                                   targets_kp2d[:, :, :2],
-                                   reduction='none')
-        valid_pos = keypoints2d_conf > 0
-        
-        losses = {}
-        if keypoints2d_conf[valid_pos].numel() == 0:
-            return {
-                'loss_smpl_body_kp2d_ba': loss_smpl_kp2d_ba.sum()*0,
-                'loss_smpl_lhand_kp2d_ba': loss_smpl_kp2d_ba.sum()*0,
-                'loss_smpl_rhand_kp2d_ba': loss_smpl_kp2d_ba.sum()*0,
-                'loss_smpl_face_kp2d_ba': loss_smpl_kp2d_ba.sum()*0,             
-            }
-        # loss /= targets_kp3d_conf[valid_pos].numel()
-        
-        loss_smpl_kp2d_ba = loss_smpl_kp2d_ba * keypoints2d_conf
-        losses['loss_smpl_body_kp2d_ba'] = torch.sum(loss_smpl_kp2d_ba[:, 
-                                                smpl_x.joint_part['body'], :]) / num_boxes
-        if face_hand_kpt:
-            if num_lhand_bbox>0:
-                losses['loss_smpl_lhand_kp2d_ba'] = torch.sum(loss_smpl_kp2d_ba[:, 
-                                                        smpl_x.joint_part['lhand'], :]) / num_lhand_bbox
-            else:
-                losses['loss_smpl_lhand_kp2d_ba'] = loss_smpl_kp2d_ba.sum()*0
-            if num_rhand_bbox>0:
-                losses['loss_smpl_rhand_kp2d_ba'] = torch.sum(loss_smpl_kp2d_ba[:, 
-                                                        smpl_x.joint_part['rhand'], :]) / num_rhand_bbox
-            else:
-                losses['loss_smpl_rhand_kp2d_ba'] = loss_smpl_kp2d_ba.sum()*0
-            if num_face_bbox>0:
-                losses['loss_smpl_face_kp2d_ba'] = torch.sum(loss_smpl_kp2d_ba[:, 
-                                                        smpl_x.joint_part['face'], :]) / num_face_bbox
-            else:
-                losses['loss_smpl_face_kp2d_ba'] = loss_smpl_kp2d_ba.sum()*0
-        else:
-            losses['loss_smpl_lhand_kp2d_ba'] = 0*torch.sum(loss_smpl_kp2d_ba[:, 
-                                                    smpl_x.joint_part['lhand'], :]) / num_lhand_bbox
-
-            losses['loss_smpl_rhand_kp2d_ba'] = 0*torch.sum(loss_smpl_kp2d_ba[:, 
-                                                    smpl_x.joint_part['rhand'], :]) / num_rhand_bbox
-
-            losses['loss_smpl_face_kp2d_ba'] = 0*torch.sum(loss_smpl_kp2d_ba[:, 
-                                                        smpl_x.joint_part['face'], :]) / num_face_bbox
-        return losses
-
-
     def loss_boxes(self, outputs, targets, indices, 
                    idx, num_boxes, data_batch,
                    face_hand_box=False):
@@ -1875,7 +1673,6 @@ class SetCriterion_Box(nn.Module):
             'smpl_beta': self.loss_smpl_beta,
             'smpl_expr': self.loss_smpl_expr,
             'smpl_kp2d': self.loss_smpl_kp2d,
-            'smpl_kp2d_ba': self.loss_smpl_kp2d_ba,
             'smpl_kp3d_ra': self.loss_smpl_kp3d_ra,
             'smpl_kp3d': self.loss_smpl_kp3d,
             'labels': self.loss_labels,
@@ -1936,7 +1733,7 @@ class SetCriterion_Box(nn.Module):
             indices_list = []
         losses = {}
         smpl_loss = ['smpl_pose', 'smpl_beta', 'smpl_expr', 'smpl_kp2d',
-                     'smpl_kp2d_ba', 'smpl_kp3d', 'smpl_kp3d_ra']
+                     'smpl_kp3d', 'smpl_kp3d_ra']
         # import pdb; pdb.set_trace()
         for loss in self.losses:
             # print(loss)
@@ -2011,7 +1808,7 @@ class SetCriterion_Box(nn.Module):
                 if loss in ['dn_bbox', 'dn_label', 'keypoints']:
                     continue
                 if loss in [
-                        'smpl_pose', 'smpl_beta', 'smpl_kp2d_ba', 'smpl_kp2d',
+                        'smpl_pose', 'smpl_beta', 'smpl_kp2d',
                         'smpl_kp3d_ra', 'smpl_kp3d', 'smpl_expr'
                 ]:
                     continue

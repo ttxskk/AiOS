@@ -31,15 +31,14 @@ from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
 from detrsmpl.data.data_structures.multi_human_data import MultiHumanData
 
 class INFERENCE_BEDLAM(torch.utils.data.Dataset):
-    def __init__(self, img_dir=None,out_path=None):
-        
+    def __init__(self, img_dir=None, out_path=None):
         self.img_dir = os.path.join(img_dir,'**/*.png')
         self.out_path = out_path
         self.img_paths = sorted(glob(self.img_dir,recursive=True)) 
         assert not os.path.exists(os.path.join(self.out_path,'predictions')), "Predictions path already exists: {}".format(self.out_path)
 
-        self.score_threshold = 0.85
-        self.resolution = [720,1280] # AGORA test     
+        self.score_threshold = cfg.threshold if 'threshold' in cfg else 0.85 
+        self.resolution = [720,1280]  
         self.format = DefaultFormatBundle()
         self.normalize = Normalize(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375])
        

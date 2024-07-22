@@ -59,8 +59,7 @@ transformer_activation = 'relu'
 batch_norm_type = 'FrozenBatchNorm2d'
 
 masks = False
-losses = ["smpl_pose", "smpl_beta", "smpl_kp2d_ba",
-        "smpl_kp2d","smpl_kp3d","smpl_kp3d_ra",'labels', 'boxes', "keypoints"]
+losses = ["smpl_pose", "smpl_beta", "smpl_kp2d","smpl_kp3d","smpl_kp3d_ra",'labels', 'boxes', "keypoints"]
 # losses = ['labels', 'boxes', "keypoints"]
 aux_loss = True
 set_cost_class = 2.0
