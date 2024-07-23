@@ -1,39 +1,24 @@
 import os
 import os.path as osp
 from glob import glob
-import numpy as np
-from config.config import cfg
-import copy
-import json
-import pickle
-import cv2
-import torch
-from pycocotools.coco import COCO
-from util.human_models import smpl_x
-from util.preprocessing import load_img, sanitize_bbox, process_bbox,augmentation_keep_size, load_ply, load_obj
-from util.transforms import rigid_align, rigid_align_batch
-import tqdm
-import random
-from util.formatting import DefaultFormatBundle
-from detrsmpl.data.datasets.pipelines.transforms import Normalize
-from humandata import HumanDataset
-from detrsmpl.utils.demo_utils import xywh2xyxy, xyxy2xywh, box2cs
-from detrsmpl.core.conventions.keypoints_mapping import convert_kps
+import shutil
+
 import mmcv
 import cv2
+import torch
 import numpy as np
-from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-from detrsmpl.core.visualization.visualize_smpl import visualize_smpl_hmr,render_smpl
-from detrsmpl.models.body_models.builder import build_body_model
-from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-from detrsmpl.data.data_structures.multi_human_data import MultiHumanData
-from detrsmpl.utils.ffmpeg_utils import video_to_images
 from mmcv.runner import get_dist_info
-from config.config import cfg
 import torch.distributed as dist
-import shutil
-import re
 from pytorch3d.io import save_obj
+
+from config.config import cfg
+from util.preprocessing import load_img, augmentation_keep_size
+from util.formatting import DefaultFormatBundle
+from detrsmpl.data.datasets.pipelines.transforms import Normalize
+from detrsmpl.core.conventions.keypoints_mapping import convert_kps
+from detrsmpl.core.visualization.visualize_smpl import render_smpl
+from detrsmpl.models.body_models.builder import build_body_model
+from detrsmpl.utils.ffmpeg_utils import video_to_images
 
 class INFERENCE_demo(torch.utils.data.Dataset):
     def __init__(self, img_dir=None, out_path=None):

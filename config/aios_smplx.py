@@ -210,12 +210,13 @@ continue_train = True
 pretrained_model_path = '../output/train_gta_synbody_ft_20230410_132110/model_dump/snapshot_2.pth.tar'
 
 # dataset setting
+
 dataset_list = []
 trainset_3d = []
 trainset_2d = []
 trainset_partition = {}
 trainset_humandata = []
-testset = 'INFERENCE_demo'
+testset = 'INFERENCE_BEDLAM'
 train_sizes=[480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
 train_max_size=1333
 test_sizes=[800]
