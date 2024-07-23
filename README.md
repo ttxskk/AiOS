@@ -40,7 +40,6 @@
     <a href="https://caizhongang.github.io/">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
   </span>
 </div>
-<br>
 <div  align="center">
   <span><sup>1</sup>SenseTime Research</span>,
   <span><sup>2</sup>City University of Hong Kong</span>,
@@ -50,7 +49,6 @@
   <span><sup>4</sup>S-Lab, Nanyang Technological University</span>,
   <span><sup>5</sup>Shanghai AI Laboratory</span>
 </div>
-<br>
 <div align="center">
     <a href="https://ttxskk.github.io/AiOS/"><img src='https://img.shields.io/badge/Project-Page-Green'></a>
     <a href="https://arxiv.org/abs/2403.17934"><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> 
