@@ -1,9 +1,7 @@
-_base_ = ['coco_transformer.py']
-
 num_classes = 2
-lr = 0.0001*1.414/10
+lr = 0.0001
 param_dict_type = 'default'
-lr_backbone = 1e-05*1.414/10
+lr_backbone = 1e-05
 lr_backbone_names = ['backbone.0']
 lr_linear_proj_names = ['reference_points', 'sampling_offsets']
 lr_linear_proj_mult = 0.1
@@ -211,8 +209,6 @@ continue_train = True
 pretrained_model_path = '../output/train_gta_synbody_ft_20230410_132110/model_dump/snapshot_2.pth.tar'
 
 # dataset setting
-# dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA']
-# trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA']
 dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA']
 trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA']
 trainset_2d = []
@@ -220,9 +216,6 @@ trainset_partition = {
             'AGORA_MM': 0.4, 
             'BEDLAM': 0.7,
             'COCO_NA': 1,
-            
-            # 'EgoBody_Egocentric': 1,
-            # 'EgoBody_Kinect': 1.0,
             }
 trainset_humandata = []
 testset = 'AGORA_MM'

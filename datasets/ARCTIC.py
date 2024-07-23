@@ -21,10 +21,12 @@ class ARCTIC(HumanDataset):
 
         if data_split == 'train':
             self.annot_path = 'data/preprocessed_npz/multihuman_data/p1_train_multi.npz'
-            self.annot_path_cache = 'data/preprocessed_npz/cache/p1_train_cache_sample30.npz'  
+            self.annot_path_cache = 'data/preprocessed_npz/cache/p1_train_cache_sample1000_080824.npz'
+            self.sample_interval = 1000  
         elif data_split == 'test':
             self.annot_path = 'data/preprocessed_npz_old/multihuman_data/p1_val_multi.npz'
             self.annot_path_cache = 'data/preprocessed_npz_old/cache/p1_val_cache_30.npz'
+            self.sample_interval = 30
         
         
         self.use_cache = getattr(cfg, 'use_cache', False)
@@ -43,7 +45,7 @@ class ARCTIC(HumanDataset):
                     f'[{self.__class__.__name__}] Cache not found, generating cache...'
                 )
             self.datalist = self.load_data(train_sample_interval=getattr(
-                cfg, f'{self.__class__.__name__}_train_sample_interval', 1000))
+                cfg, f'{self.__class__.__name__}_train_sample_interval', self.sample_interval))
             if self.use_cache:
                 self.save_cache(self.annot_path_cache, self.datalist)
                 

@@ -7,7 +7,7 @@ from .human_models import smpl_x, smpl
 from .transforms import cam2pixel, transform_joint_to_other_db, transform_joint_to_other_db_batch
 from plyfile import PlyData, PlyElement
 import torch
-
+import torch.distributed as dist
 
 def load_img(path, order='RGB'):
     img = cv2.imread(path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -50,8 +50,8 @@ def sanitize_bbox(bbox, img_width, img_height):
     y1 = np.max((0, y))
     x2 = np.min((img_width - 1, x1 + np.max((0, w - 1))))
     y2 = np.min((img_height - 1, y1 + np.max((0, h - 1))))
-    if w * h > 0 and x2 > x1 and y2 > y1:
-        bbox = np.array([x1, y1, x2 - x1, y2 - y1])
+    if w > 0 and h > 0 and x2 >= x1 and y2 >= y1:
+        bbox = np.array([x1, y1, x2 - x1 + 1, y2 - y1 + 1])
     else:
         bbox = None
 
@@ -64,7 +64,9 @@ def resize(ori_shape, size, max_size=None):
         if max_size is not None:
             min_original_size = float(min((w, h)))
             max_original_size = float(max((w, h)))
-            if max_original_size / min_original_size * size > max_size:
+            if min_original_size ==0:
+                print('min_original_size:',min_original_size)
+            if max_original_size / (min_original_size) * size > max_size:
                 size = int(round(max_size * min_original_size / max_original_size))
 
         if (w <= h and w == size) or (h <= w and h == size):
@@ -90,27 +92,20 @@ def resize(ori_shape, size, max_size=None):
     
     return size
 
-def process_bbox(bbox, img_width, img_height, ratio=1.25):
+def process_bbox(bbox, img_width, img_height, ratio=1.):
+    
+    bbox = np.array(bbox, dtype=np.float32)
     # aspect ratio preserving bbox
     w = bbox[2]
     h = bbox[3]
     c_x = bbox[0] + w / 2.
     c_y = bbox[1] + h / 2.
-    # aspect_ratio = cfg.input_img_shape[1] / cfg.input_img_shape[0]
-    # if w > aspect_ratio * h:
-    #     h = w / aspect_ratio
-    # elif w < aspect_ratio * h:
-    #     w = h * aspect_ratio
     bbox[2] = w * ratio
     bbox[3] = h * ratio
     bbox[0] = c_x - bbox[2] / 2.
     bbox[1] = c_y - bbox[3] / 2.
 
-    bbox = bbox.astype(np.float32)
-    bbox = sanitize_bbox(bbox, img_width, img_height)
-    if bbox is None:
-        return bbox
-    
+    bbox = sanitize_bbox(bbox, img_width, img_height)    
     return bbox
 
 
@@ -179,7 +174,7 @@ def augmentation_keep_size(img, bbox, data_split):
     ori_shape = img.shape[:2][::-1]
     if getattr(cfg, 'no_aug', False) and data_split == 'train':
         scale, rot, color_scale, do_flip,size,crop = 1.0, 0.0, np.array([1, 1, 1]), False, ori_shape, np.array([1,1])
-        # import ipdb;ipdb.set_trace()
+        
         size = random.choice(cfg.train_sizes)
         max_size = cfg.train_max_size
     elif data_split == 'train':
@@ -192,12 +187,12 @@ def augmentation_keep_size(img, bbox, data_split):
         scale, rot, color_scale, do_flip, crop = 1.0, 0.0, np.array([1, 1, 1]), False, np.array([1,1])
         size = random.choice(cfg.test_sizes)
         max_size = cfg.test_max_size
-    # import ipdb;ipdb.set_trace()
+    
     crop_bbox_wh = (bbox[2:]*crop).astype(np.uint32)
     xy_range = img.shape[:2][::-1]-crop_bbox_wh
     crop_bbox_xywh = np.array([np.random.randint(0,xy_range[0]+1),np.random.randint(0,xy_range[1]+1),crop_bbox_wh[0],crop_bbox_wh[1]])
     reshape_size = resize(crop_bbox_xywh[2:], size, max_size)
-    # import ipdb;ipdb.set_trace()
+    
     img, trans, inv_trans = generate_patch_image(img, crop_bbox_xywh, 1, rot, do_flip, reshape_size[::-1])
     img = np.clip(img * color_scale[None, None, :], 0, 255)
     return img, trans, inv_trans, rot, do_flip
@@ -207,7 +202,7 @@ def augmentation_instance_sample(img, bbox, data_split,data,dataname):
     
     if getattr(cfg, 'no_aug', False) and data_split == 'train':
         scale, rot, color_scale, do_flip,size,crop,sample_ratio,sample_prob = 1.0, 0.0, np.array([1, 1, 1]), False, ori_shape, np.array([1,1]), 0,0
-        # import ipdb;ipdb.set_trace()
+        
         size = random.choice(cfg.train_sizes)
         max_size = cfg.train_max_size
     elif data_split == 'train':
@@ -220,7 +215,7 @@ def augmentation_instance_sample(img, bbox, data_split,data,dataname):
         scale, rot, color_scale, do_flip, crop,sample_ratio,sample_prob = 1.0, 0.0, np.array([1, 1, 1]), False, np.array([1,1]),0,0
         size = random.choice(cfg.test_sizes)
         max_size = cfg.test_max_size
-    # import ipdb;ipdb.set_trace()
+    
     
     if random.random() < sample_prob:
         crop_person_number = len(data['bbox'])
@@ -251,13 +246,14 @@ def augmentation_instance_sample(img, bbox, data_split,data,dataname):
         crop_bbox_xywh = adjust_bounding_box(crop_bbox_xywh,ori_shape[0],ori_shape[1])
     else:
         crop_bbox_xywh = bbox.copy()
-    
-    # if crop_bbox_xywh[2] <= 600:
-    #     size = random.choice([400, 500, 600, 650])
-    #     max_size = None
-    
     reshape_size = resize(crop_bbox_xywh[2:], size, max_size)
-    # import ipdb;ipdb.set_trace()
+    # try:
+    #     reshape_size = resize(crop_bbox_xywh[2:], size, max_size)
+    # except Exception as e:
+    #     print(crop_bbox_xywh)
+    #     print(size)
+    #     print(max_size)
+    #     raise e
     img, trans, inv_trans = generate_patch_image(img, crop_bbox_xywh, 1, rot, do_flip, reshape_size[::-1])
     img = np.clip(img * color_scale[None, None, :], 0, 255)
     return img, trans, inv_trans, rot, do_flip
@@ -313,7 +309,7 @@ def adjust_bounding_box(input_bbox,image_width, image_height):
 
 def generate_patch_image(cvimg, bbox, scale, rot, do_flip, out_shape):
     img = cvimg.copy()
-    # import ipdb;ipdb.set_trace()
+    
     img_height, img_width, img_channels = img.shape
 
     bb_c_x = float(bbox[0] + 0.5 * bbox[2])
@@ -460,7 +456,7 @@ def process_db_coord_batch_no_valid(joint_img, joint_cam, do_flip,
                                                   target_joints_name)
     joint_cam_wo_ra = transform_joint_to_other_db_batch(
         joint_cam, src_joints_name, target_joints_name)
-    # import ipdb;ipdb.set_trace()
+    
     joint_trunc = transform_joint_to_other_db_batch(joint_trunc,
                                                     src_joints_name,
                                                     target_joints_name)
@@ -495,196 +491,139 @@ def process_human_model_output_batch_ubody(human_model_param,
     human_model = smpl_x
     rotation_valid = np.ones((num_person,smpl_x.orig_joint_num), dtype=np.float32)
     coord_valid = np.ones((num_person,smpl_x.joint_num), dtype=np.float32)
-    expr_valid = np.ones((num_person), dtype=np.float32)
-    shape_valid = np.ones((num_person), dtype=np.float32)
-    root_pose, body_pose, shape, trans = human_model_param['root_pose'], human_model_param['body_pose'], \
-                                            human_model_param['shape'], human_model_param['trans']
+    # expr_valid = np.ones((num_person), dtype=np.float32)
+    # shape_valid = np.ones((num_person), dtype=np.float32)
+    # root_pose, body_pose, shape, trans = human_model_param['root_pose'], human_model_param['body_pose'], \
+    #                                         human_model_param['shape'], human_model_param['trans']
     
+    if 'smplx_valid' in human_model_param:
+        smplx_valid = human_model_param['smplx_valid']
+        shape_valid = human_model_param['smplx_valid']
+    else:
+        smplx_valid = np.ones(num_person, dtype=np.bool8)
+        shape_valid = np.ones(num_person, dtype=np.bool8)
+
+    if 'expr_valid' in human_model_param:
+        expr_valid = human_model_param['expr_valid']
+    else:
+        expr_valid = np.ones(num_person, dtype=np.bool8)
+    expr_valid*=smplx_valid
+
+    if 'face_valid' in human_model_param:
+        face_valid = human_model_param['face_valid']
+    else:
+        face_valid = np.ones(num_person, dtype=np.bool8)
+    face_valid *= smplx_valid
+
+    # check lhand valid key exsits
+    if 'lhand_valid' in human_model_param:  
+        lhand_valid = human_model_param['lhand_valid']
+    else:
+        lhand_valid = np.ones(num_person, dtype=np.bool8)
+    lhand_valid*=smplx_valid
+    
+    # check rhand valid key exsits
+    if 'rhand_valid' in human_model_param:
+        rhand_valid = human_model_param['rhand_valid']
+    else:
+        rhand_valid = np.ones(num_person, dtype=np.bool8)
+    rhand_valid*=smplx_valid
+    
+    # check validation of the smplx parameters
+    if 'body_pose' in human_model_param \
+        and human_model_param['body_pose'] is not None:
+        root_pose, body_pose = human_model_param['root_pose'], human_model_param['body_pose']
+        shape, trans = human_model_param['shape'], human_model_param['trans']
+        root_pose = torch.FloatTensor(root_pose).view(num_person, 1, 3)
+        body_pose = torch.FloatTensor(body_pose).view(num_person, -1, 3)
+        shape = torch.FloatTensor(shape).view(num_person, -1)
+        trans = torch.FloatTensor(trans).view(num_person,-1)
+    else:
+        root_pose = np.zeros((num_person, 3), dtype=np.float32)
+        body_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['body'])), dtype=np.float32)
+        shape = np.zeros((num_person, 10), dtype=np.float32)
+        trans = np.zeros((num_person, 3), dtype=np.float32)
+        rotation_valid[:, smpl_x.orig_joint_part['body']] = 0
+        coord_valid[:, smpl_x.joint_part['body']] = 0
+    body_pose*=smplx_valid[:, None, None]
+    root_pose*=smplx_valid[:, None, None]
+    shape*=smplx_valid[:, None]
+    trans*=smplx_valid[:, None]
+    rotation_valid[:, smpl_x.orig_joint_part['body']]*=smplx_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['body']]*=smplx_valid[:,None]  
     
     # check validation of the smplx parameters
     if 'lhand_pose' in human_model_param \
         and human_model_param['lhand_pose'] is not None:
         lhand_pose = human_model_param['lhand_pose']
-        lhand_valid = part_valid['lhand']
-        rotation_valid[:, smpl_x.orig_joint_part['lhand']] = rotation_valid[:, smpl_x.orig_joint_part['lhand']]*lhand_valid[:,None]
-        coord_valid[:, smpl_x.joint_part['lhand']] = coord_valid[:, smpl_x.joint_part['lhand']]*lhand_valid[:,None]
+        lhand_pose = torch.FloatTensor(lhand_pose).view(num_person, -1, 3)
+        # lhand_valid = part_valid['lhand']
+        # rotation_valid[:, smpl_x.orig_joint_part['lhand']]*=lhand_valid[:,None]
+        # coord_valid[:, smpl_x.joint_part['lhand']]*=lhand_valid[:,None]
     else:
         lhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['lhand'])), dtype=np.float32)
         rotation_valid[:, smpl_x.orig_joint_part['lhand']] = 0
         coord_valid[:, smpl_x.joint_part['lhand']] = 0
     
+    lhand_pose*=lhand_valid[:,None,None]    
+    rotation_valid[:, smpl_x.orig_joint_part['lhand']]*=lhand_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['lhand']]*=lhand_valid[:,None]  
     
     if 'rhand_pose' in human_model_param \
         and human_model_param['rhand_pose'] is not None:
         rhand_pose = human_model_param['rhand_pose']
-        rhand_valid = part_valid['rhand']
-        rotation_valid[:, smpl_x.orig_joint_part['rhand']] = rotation_valid[:, smpl_x.orig_joint_part['rhand']]*rhand_valid[:,None]
-        coord_valid[:, smpl_x.joint_part['rhand']] = coord_valid[:, smpl_x.joint_part['rhand']]*rhand_valid[:,None]
+        rhand_pose = torch.FloatTensor(rhand_pose).view(num_person, -1, 3)
+        # rhand_valid = part_valid['rhand']
+        # rotation_valid[:, smpl_x.orig_joint_part['rhand']]*=rhand_valid[:,None]
+        # coord_valid[:, smpl_x.joint_part['rhand']]*=rhand_valid[:,None]
     else:
-        
         rhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['rhand'])), dtype=np.float32)
         rotation_valid[:, smpl_x.orig_joint_part['rhand']] = 0
         coord_valid[:, smpl_x.joint_part['rhand']] = 0
+    rhand_pose*=rhand_valid[:,None,None]  
+    rotation_valid[:, smpl_x.orig_joint_part['rhand']]*=rhand_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['rhand']]*=rhand_valid[:,None]
     
     if 'expr' in human_model_param  and \
         human_model_param['expr'] is not None:
         expr = human_model_param['expr']
-        face_valid = part_valid['face']
-        expr_valid = expr_valid*face_valid
+        # face_valid = part_valid['face']
+        # expr_valid = expr_valid*face_valid
     else:
         expr = np.zeros((num_person, smpl_x.expr_code_dim), dtype=np.float32)
         expr_valid = expr_valid*0
-
+    expr*=face_valid[:,None]   
+    expr = torch.FloatTensor(expr).view(num_person,-1)
+    expr_valid*=face_valid # expr is invalid if face_valid is 0
+    
     if 'jaw_pose' in human_model_param and \
         human_model_param['jaw_pose'] is not None:
         jaw_pose = human_model_param['jaw_pose']
-        face_valid = part_valid['face']
-        rotation_valid[:, smpl_x.orig_joint_part['face']] = rotation_valid[:, smpl_x.orig_joint_part['face']]*face_valid[:,None]
-        coord_valid[:, smpl_x.joint_part['face']] = coord_valid[:, smpl_x.joint_part['face']]*face_valid[:,None]
+        # face_valid = part_valid['face']
+        # rotation_valid[:, smpl_x.orig_joint_part['face']]*=face_valid[:,None]
+        # coord_valid[:, smpl_x.joint_part['face']]*=face_valid[:,None]
     else:
         jaw_pose = np.zeros((num_person, 3), dtype=np.float32)
         rotation_valid[:,smpl_x.orig_joint_part['face']] = 0
         coord_valid[:,smpl_x.joint_part['face']] = 0
-
+        
+    jaw_pose*=face_valid[:,None]
+    jaw_pose = torch.FloatTensor(jaw_pose).view(num_person, -1, 3)
+    rotation_valid[:, smpl_x.orig_joint_part['face']]*=face_valid[:,None]
+    coord_valid[:, smpl_x.joint_part['face']]*=face_valid[:,None]
     
     if 'gender' in human_model_param and \
         human_model_param['gender'] is not None:
         gender = human_model_param['gender']
     else:
         gender = 'neutral'
-    # import ipdb;ipdb.set_trace()
+    
     if as_smplx == 'smpl':
         rotation_valid[:,:] = 0
         rotation_valid[:,:21] = 1
         expr_valid = expr_valid*0
         coord_valid[:,:] = 0
         coord_valid[:,smpl_x.joint_part['body']] = 1
-    
-    root_pose = torch.FloatTensor(root_pose).view(num_person, 1, 3)
-    body_pose = torch.FloatTensor(body_pose).view(num_person, -1, 3)
-    lhand_pose = torch.FloatTensor( lhand_pose).view(num_person, -1, 3)
-    rhand_pose = torch.FloatTensor(rhand_pose).view(num_person, -1, 3)
-    jaw_pose = torch.FloatTensor(jaw_pose).view(num_person, -1, 3)
-
-    shape = torch.FloatTensor(shape).view(num_person, -1)
-    expr = torch.FloatTensor(expr).view(num_person,-1)
-    trans = torch.FloatTensor(trans).view(num_person,-1)
-
-    
-    
-
-    pose = torch.cat((root_pose, body_pose, lhand_pose, rhand_pose, jaw_pose),dim=1)
-
-    ## so far, data augmentations are not applied yet
-    ## now, apply data augmentations
-
-    
-    # x,y affine transform, root-relative depth
-    
-    # 3D data rotation augmentation
-    rot_aug_mat = np.array(
-        [[np.cos(np.deg2rad(-rot)), -np.sin(np.deg2rad(-rot)), 0],
-         [np.sin(np.deg2rad(-rot)),
-          np.cos(np.deg2rad(-rot)), 0], [0, 0, 1]],
-        dtype=np.float32)
-    
-    # parameters
-    # flip pose parameter (axis-angle)
-    if do_flip:
-        for pair in human_model.orig_flip_pairs:
-            pose[:, pair[0], :], pose[:,
-                                      pair[1], :] = pose[:, pair[1], :].clone(
-                                      ), pose[:, pair[0], :].clone()
-            rotation_valid[:,pair[0]], rotation_valid[:,pair[1]] = rotation_valid[:,pair[1]].copy(), rotation_valid[:,
-                pair[0]].copy()
-        pose[:,:, 1:3] *= -1  # multiply -1 to y and z axis of axis-angle
-    # rotate root pose
-    pose = pose.numpy()
-    root_pose = pose[:, human_model.orig_root_joint_idx, :]
-    # import ipdb;ipdb.set_trace()
-    # for pose_i in range(len(root_pose)):
-    #     root_pose_mat = cv2.Rodrigues(root_pose[pose_i])[0]
-    #     root_pose[pose_i] = cv2.Rodrigues(np.dot(rot_aug_mat,
-    #                                              root_pose_mat))[0][:, 0]
-
-    pose[:, human_model.orig_root_joint_idx] = root_pose.reshape(num_person, 3)
-
-    # change to mean shape if beta is too far from it
-    shape[(shape.abs() > 3).any(dim=1)] = 0.
-    shape = shape.numpy().reshape(num_person, -1)
-    
-    
-    shape_valid = shape.sum(-1)!=0
-
-    # return results
-    pose = pose.reshape(num_person, -1)
-    expr = expr.numpy().reshape(num_person, -1)
-
-        
-    return pose, shape, expr, rotation_valid, coord_valid, expr_valid, shape_valid
-
-def process_human_model_output_batch_simplify(human_model_param,
-                                     do_flip,
-                                     rot,
-                                     as_smplx
-                                     ):
-    num_person = human_model_param['body_pose'].shape[0]
-    human_model = smpl_x
-    rotation_valid = np.ones((num_person,smpl_x.orig_joint_num), dtype=np.float32)
-    coord_valid = np.ones((num_person,smpl_x.joint_num), dtype=np.float32)
-    expr_valid = np.ones((num_person), dtype=np.float32)
-    shape_valid = np.ones((num_person), dtype=np.float32)
-    root_pose, body_pose, shape, trans = human_model_param['root_pose'], human_model_param['body_pose'], \
-                                            human_model_param['shape'], human_model_param['trans']
-    
-    
-    # check validation of the smplx parameters
-    if 'lhand_pose' in human_model_param \
-        and human_model_param['lhand_pose'] is not None:
-        lhand_pose = human_model_param['lhand_pose']
-    else:
-        lhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['lhand'])), dtype=np.float32)
-        rotation_valid[:, smpl_x.orig_joint_part['lhand']] = 0
-        coord_valid[:, smpl_x.joint_part['lhand']] = 0
-    
-    
-    if 'rhand_pose' in human_model_param \
-        and human_model_param['rhand_pose'] is not None:
-        rhand_pose = human_model_param['rhand_pose']
-    else:
-        rhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['rhand'])), dtype=np.float32)
-        rotation_valid[:, smpl_x.orig_joint_part['rhand']] = 0
-        coord_valid[:, smpl_x.joint_part['rhand']] = 0
-    
-    if 'expr' in human_model_param  and \
-        human_model_param['expr'] is not None:
-        expr = human_model_param['expr']
-    else:
-        expr = np.zeros((num_person, smpl_x.expr_code_dim), dtype=np.float32)
-        expr_valid = expr_valid*0
-
-    if 'jaw_pose' in human_model_param and \
-        human_model_param['jaw_pose'] is not None:
-        jaw_pose = human_model_param['jaw_pose']
-    else:
-        jaw_pose = np.zeros((num_person, 3), dtype=np.float32)
-        rotation_valid[:,smpl_x.orig_joint_part['face']] = 0
-        coord_valid[:,smpl_x.joint_part['face']] = 0
-
-    
-    if 'gender' in human_model_param and \
-        human_model_param['gender'] is not None:
-        gender = human_model_param['gender']
-    else:
-        gender = 'neutral'
-    # import ipdb;ipdb.set_trace()
-    if as_smplx == 'smpl':
-        rotation_valid[:,:] = 0
-        rotation_valid[:,:21] = 1
-        expr_valid = expr_valid*0
-        shape_valid = shape_valid*0
-        coord_valid[:,:] = 0
-        coord_valid[:,smpl_x.joint_part['body']] = 1 
     
     root_pose = torch.FloatTensor(root_pose).view(num_person, 1, 3)
     body_pose = torch.FloatTensor(body_pose).view(num_person, -1, 3)
@@ -727,7 +666,7 @@ def process_human_model_output_batch_simplify(human_model_param,
     # rotate root pose
     pose = pose.numpy()
     root_pose = pose[:, human_model.orig_root_joint_idx, :]
-    # import ipdb;ipdb.set_trace()
+    
     # for pose_i in range(len(root_pose)):
     #     root_pose_mat = cv2.Rodrigues(root_pose[pose_i])[0]
     #     root_pose[pose_i] = cv2.Rodrigues(np.dot(rot_aug_mat,
@@ -737,10 +676,10 @@ def process_human_model_output_batch_simplify(human_model_param,
 
     # change to mean shape if beta is too far from it
     # shape[(shape.abs() > 3).any(dim=1)] = 0.
-    # shape = shape.numpy().reshape(num_person, -1)
+    shape = shape.numpy().reshape(num_person, -1)
     
     
-    shape_valid = shape.sum(-1)!=0
+    # shape_valid = shape.sum(-1)!=0
 
     # return results
     pose = pose.reshape(num_person, -1)
@@ -749,7 +688,170 @@ def process_human_model_output_batch_simplify(human_model_param,
         
     return pose, shape, expr, rotation_valid, coord_valid, expr_valid, shape_valid
 
+def process_human_model_output_batch_simplify(human_model_param,
+                                     do_flip,
+                                     rot,
+                                     as_smplx, data_name=None
+                                     ):
+    num_person = human_model_param['body_pose'].shape[0]
+    human_model = smpl_x
+    rotation_valid = np.ones((num_person,smpl_x.orig_joint_num), dtype=np.float32)
+    coord_valid = np.ones((num_person,smpl_x.joint_num), dtype=np.float32)
+    # expr_valid = np.ones((num_person), dtype=np.float32)
+    # shape_valid = np.ones((num_person), dtype=np.float32)
+    # shape, trans = human_model_param['shape'], human_model_param['trans']
+    # check smplx valid key exsits
+    if 'smplx_valid' in human_model_param:
+        smplx_valid = human_model_param['smplx_valid']
+        shape_valid = human_model_param['smplx_valid']
+    else:
+        smplx_valid = np.ones(num_person, dtype=np.bool8)
+        shape_valid = np.ones(num_person, dtype=np.bool8)
+        
+    if 'expr_valid' in human_model_param:
+        expr_valid = human_model_param['expr_valid']
+    else:
+        expr_valid = np.ones(num_person, dtype=np.bool8)
+    expr_valid*=smplx_valid
+    
+    # check face valid key exsits
+    if 'face_valid' in human_model_param:
+        face_valid = human_model_param['face_valid']
+    else:
+        face_valid = np.ones(num_person, dtype=np.bool8)
+    face_valid *= smplx_valid
+    
+    # check lhand valid key exsits
+    if 'lhand_valid' in human_model_param:  
+        lhand_valid = human_model_param['lhand_valid']
+    else:
+        lhand_valid = np.ones(num_person, dtype=np.bool8)
+    lhand_valid*=smplx_valid
+    
+    # check rhand valid key exsits
+    if 'rhand_valid' in human_model_param:
+        rhand_valid = human_model_param['rhand_valid']
+    else:
+        rhand_valid = np.ones(num_person, dtype=np.bool8)
+    rhand_valid*=smplx_valid
+    
+    # check validation of the smplx parameters
+    if 'body_pose' in human_model_param \
+        and human_model_param['body_pose'] is not None:
+        root_pose, body_pose = human_model_param['root_pose'], human_model_param['body_pose']
+        shape, trans = human_model_param['shape'], human_model_param['trans']
+        root_pose = torch.FloatTensor(root_pose).view(num_person, 1, 3)
+        body_pose = torch.FloatTensor(body_pose).view(num_person, -1, 3)
+        shape = torch.FloatTensor(shape).view(num_person, -1)
+        trans = torch.FloatTensor(trans).view(num_person,-1)
+    else:
+        root_pose = np.zeros((num_person, 3), dtype=np.float32)
+        body_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['body'])), dtype=np.float32)
+        shape = np.zeros((num_person, 10), dtype=np.float32)
+        trans = np.zeros((num_person, 3), dtype=np.float32)
+        rotation_valid[:, smpl_x.orig_joint_part['body']] = 0
+        coord_valid[:, smpl_x.joint_part['body']] = 0
+    body_pose*=smplx_valid[:, None, None]
+    root_pose*=smplx_valid[:, None, None]
+    shape*=smplx_valid[:, None]
+    trans*=smplx_valid[:, None]
+    rotation_valid[:, smpl_x.orig_joint_part['body']]*=smplx_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['body']]*=smplx_valid[:,None]  
+    
+    if 'lhand_pose' in human_model_param \
+        and human_model_param['lhand_pose'] is not None:
+        lhand_pose = human_model_param['lhand_pose']
+        lhand_pose = torch.FloatTensor(lhand_pose).view(num_person, -1, 3)
+    else:
+        lhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['lhand'])), dtype=np.float32)
+        rotation_valid[:, smpl_x.orig_joint_part['lhand']] = 0
+        coord_valid[:, smpl_x.joint_part['lhand']] = 0 
+        
+    lhand_pose*=lhand_valid[:,None,None]    
+    rotation_valid[:, smpl_x.orig_joint_part['lhand']]*=lhand_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['lhand']]*=lhand_valid[:,None]  
 
+    if 'rhand_pose' in human_model_param \
+        and human_model_param['rhand_pose'] is not None:
+        rhand_pose = human_model_param['rhand_pose']
+        rhand_pose = torch.FloatTensor(rhand_pose).view(num_person, -1, 3)
+    else:
+        rhand_pose = np.zeros((num_person, 3 * len(smpl_x.orig_joint_part['rhand'])), dtype=np.float32)
+        rotation_valid[:, smpl_x.orig_joint_part['rhand']] = 0
+        coord_valid[:, smpl_x.joint_part['rhand']] = 0
+    rhand_pose*=rhand_valid[:,None,None]  
+    rotation_valid[:, smpl_x.orig_joint_part['rhand']]*=rhand_valid[:,None]   
+    coord_valid[:, smpl_x.joint_part['rhand']]*=rhand_valid[:,None]
+    
+    # face valid > expr valid > face kps valid, but for synbody and bedlam
+    if 'expr' in human_model_param  and \
+        human_model_param['expr'] is not None:
+        expr = human_model_param['expr']
+    else:
+        expr = np.zeros((num_person, smpl_x.expr_code_dim), dtype=np.float32)
+        expr_valid = expr_valid * 0
+    expr*=face_valid[:,None]   
+    expr = torch.FloatTensor(expr).view(num_person,-1)
+    expr_valid*=face_valid # expr is invalid if face_valid is 0
+    # for coco and ubody, if face is invalid, jaw pose and face kps2d should be false
+    if 'jaw_pose' in human_model_param and \
+        human_model_param['jaw_pose'] is not None:
+        jaw_pose = human_model_param['jaw_pose']
+    else:
+        jaw_pose = np.zeros((num_person, 3), dtype=np.float32)
+        rotation_valid[:,smpl_x.orig_joint_part['face']] = 0
+        coord_valid[:,smpl_x.joint_part['face']] = 0
+    jaw_pose*=face_valid[:,None]
+    jaw_pose = torch.FloatTensor(jaw_pose).view(num_person, -1, 3)
+    rotation_valid[:, smpl_x.orig_joint_part['face']]*=face_valid[:,None]
+    coord_valid[:, smpl_x.joint_part['face']]*=face_valid[:,None]
+
+    if 'gender' in human_model_param and \
+        human_model_param['gender'] is not None:
+        gender = human_model_param['gender']
+    else:
+        gender = 'neutral'
+
+    if as_smplx == 'smpl':
+        rotation_valid[:,:] = 0
+        rotation_valid[:,:21] = 1
+        expr_valid = expr_valid*0
+        coord_valid[:,:] = 0
+        coord_valid[:,smpl_x.joint_part['body']] = 1 
+    # print(root_pose.shape, body_pose.shape, lhand_pose.shape, rhand_pose.shape, jaw_pose.shape)
+    pose = torch.cat((root_pose, body_pose, lhand_pose, rhand_pose, jaw_pose),dim=1)
+
+    # parameters
+    # flip pose parameter (axis-angle)
+    if do_flip:
+        for pair in human_model.orig_flip_pairs:
+            pose[:, pair[0], :], pose[:,
+                                      pair[1], :] = pose[:, pair[1], :].clone(
+                                      ), pose[:, pair[0], :].clone()
+            rotation_valid[:,pair[0]], rotation_valid[:,pair[1]] = rotation_valid[:,pair[1]].copy(), rotation_valid[:,
+                pair[0]].copy()
+        pose[:,:, 1:3] *= -1  # multiply -1 to y and z axis of axis-angle
+    # rotate root pose
+    pose = pose.numpy()
+    root_pose = pose[:, human_model.orig_root_joint_idx, :]
+
+    # for pose_i in range(len(root_pose)):
+    #     root_pose_mat = cv2.Rodrigues(root_pose[pose_i])[0]
+    #     root_pose[pose_i] = cv2.Rodrigues(np.dot(rot_aug_mat,
+    #                                              root_pose_mat))[0][:, 0]
+
+    pose[:, human_model.orig_root_joint_idx] = root_pose.reshape(num_person, 3)
+
+    # change to mean shape if beta is too far from it
+    # shape[(shape.abs() > 3).any(dim=1)] = 0.
+    shape = shape.numpy().reshape(num_person, -1)
+    # shape_valid = shape.sum(-1)!=0
+    # return results
+    pose = pose.reshape(num_person, -1)
+    expr = expr.numpy().reshape(num_person, -1)
+
+        
+    return pose, shape, expr, rotation_valid, coord_valid, expr_valid, shape_valid
 
 def load_obj(file_name):
     v = []

@@ -1,13 +1,58 @@
+
 <div align="center">
     <h2>
       AiOS: All-in-One-Stage Expressive Human Pose and Shape Estimation
     </h2>
 </div>
-
 <div align="center">
-    <a href="https://ttxskk.github.io/AiOS/" class="button"><b>[Homepage]</b></a> &nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="https://arxiv.org/abs/2403.17934" class="button"><b>[arXiv]</b></a> &nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="https://ttxskk.github.io/AiOS/" class="button"><b>[Code]</b></a> &nbsp;&nbsp;&nbsp;&nbsp;
+  <span>
+    <a href="https://github.com/ttxskk">Qingping Sun</a><sup>1, 2</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://github.com/WYJSJTU">Yanjun Wang</a><sup>1</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://ailingzeng.site/">Ailing Zeng</a><sup>3</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ">Wanqi Yin</a><sup>1</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://www.linkedin.com/in/chen-wei-weic0006/">Chen Wei</a><sup>1</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://wenjiawang0312.github.io/">Wenjia Wang</a><sup>5</sup>,&nbsp;
+  </span>
+  <br>
+  <span>
+    <a href="https://haiyi-mei.com">Haiyi Mei</a><sup>1</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://ttxskk.github.io/AiOS/">Chi Sing Leung</a><sup>2</sup>,&nbsp;
+    <span>
+      <a href="https://liuziwei7.github.io/">Ziwei Liu</a><sup>4</sup>,&nbsp;
+    </span>
+  </span>
+  <span>
+    <a href="https://yanglei.me/">Lei Yang</a><sup>1, 5</sup>,&nbsp;
+  </span>
+  <span>
+    <a href="https://caizhongang.github.io/">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
+  </span>
+</div>
+<div  align="center">
+  <span><sup>1</sup>SenseTime Research</span>,
+  <span><sup>2</sup>City University of Hong Kong</span>,
+  <br>
+  <span><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
+  <br>
+  <span><sup>4</sup>S-Lab, Nanyang Technological University</span>,
+  <span><sup>5</sup>Shanghai AI Laboratory</span>
+</div>
+<div align="center">
+    <a href="https://ttxskk.github.io/AiOS/"><img src='https://img.shields.io/badge/Project-Page-Green'></a>
+    <a href="https://arxiv.org/abs/2403.17934"><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a> 
+    <a href="https://huggingface.co/spaces/ttxskk/AiOS"><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Space-blue'></a> 
 </div>
 
 ---
@@ -29,42 +74,70 @@
 
 
 
+
+
+
 ## Preparation
-- download datasets for evaluation
+- download all datasets
   - [AGORA](https://agora.is.tue.mpg.de/index.html)       
-  - [BEDLAM](https://bedlam.is.tue.mpg.de/index.html)      
-- download [SMPL-X](https://smpl-x.is.tue.mpg.de/) body models.
-- download SMPL body models `SMPL_FEMALE.pkl`, `SMPL_MALE.pkl`, `SMPL_NEUTRAL.pkl` provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
-- download other SMPL-X dependent files: `SMPLX_to_J14.pkl`, `MANO_SMPLX_vertex_ids.pkl`, `SMPL-X__FLAME_vertex_ids.npy`, `SMPLX_NEUTRAL.pkl`
-  provided by [SMPLer-X](https://huggingface.co/camenduru/SMPLer-X/tree/main).
-- download AiOS [checkpoint](https://drive.google.com/file/d/1arUq25YMpgrTCKFKsQQy1LAaNgVwlL99/view?usp=sharing)
-- download AGORA validation set [Humandata](https://drive.google.com/file/d/1cjCVwrFdZ9qMXsA_yaZa3_plYYK8uyPU/view?usp=sharing)
-Organize them according to this datastructure:
+  - [BEDLAM](https://bedlam.is.tue.mpg.de/index.html)   
+  - [MSCOCO](https://cocodataset.org/#home) 
+  - [UBody](https://github.com/IDEA-Research/OSX)
+  - [ARCTIC](https://arctic.is.tue.mpg.de/) 
+  - [EgoBody](https://sanweiliti.github.io/egobody/egobody.html)
+  - [EHF](https://smpl-x.is.tue.mpg.de/index.html)
+- process all datasets into [HumanData](https://github.com/open-mmlab/mmhuman3d/blob/main) format. We provided the proccessed npz file, which can be download from [here](https://huggingface.co/datasets/ttxskk/AiOS_Train_Data).
+- download [SMPL-X](https://smpl-x.is.tue.mpg.de/)
+- download AiOS [checkpoint](https://huggingface.co/ttxskk/AiOS/tree/main)
+
+The file structure should be like:
 ```text
 AiOS/
 ├── config/
 └── data
     ├── body_models
-        └── smplx
-    |       ├──MANO_SMPLX_vertex_ids.pkl
-    |       ├──SMPL-X__FLAME_vertex_ids.npy
-    |       ├──SMPLX_NEUTRAL.pkl
-    |       ├──SMPLX_to_J14.pkl
-    |       ├──SMPLX_NEUTRAL.npz
-    |       ├──SMPLX_MALE.npz
-    |       └──SMPLX_FEMALE.npz
-        └── smpl
+    |   ├── smplx
+    |   |   ├──MANO_SMPLX_vertex_ids.pkl
+    |   |   ├──SMPL-X__FLAME_vertex_ids.npy
+    |   |   ├──SMPLX_NEUTRAL.pkl
+    |   |   ├──SMPLX_to_J14.pkl
+    |   |   ├──SMPLX_NEUTRAL.npz
+    |   |   ├──SMPLX_MALE.npz
+    |   |   └──SMPLX_FEMALE.npz
+    |   └── smpl
     |       ├──SMPL_FEMALE.pkl
     |       ├──SMPL_MALE.pkl
     |       └──SMPL_NEUTRAL.pkl
-    ├── cache
+    ├── preprocessed_npz
+    │   └── cache
+    |       ├──agora_train_3840_w_occ_cache_2010.npz
+    |       ├──bedlam_train_cache_080824.npz
+    |       ├──...
+    |       └──coco_train_cache_080824.npz
     ├── checkpoint
     │   └── aios_checkpoint.pth
     ├── datasets
     │   ├── agora
-    │   └── bedlam
-    └── multihuman_data
-        └── agora_validation_multi_3840_1010.npz
+    |   │    └──3840x2160
+    │   │        ├──train
+    │   │        └──test
+    │   ├── bedlam
+    │   │     ├──train_images
+    │   │     └──test_images
+    │   ├── ARCTIC
+    │   │     ├──s01
+    │   │     ├──s02
+    │   │     ├──...   
+    │   │     └──s10
+    │   ├── EgoBody
+    │   │     ├──egocentric_color
+    │   │     └──kinect_color
+    │   └── UBody
+    |       └──images
+    └── checkpoint
+        ├── edpose_r50_coco.pth
+        └── aios_checkpoint.pth
+
 ```
 # Installtion
 
@@ -106,11 +179,20 @@ cd ../../..
 - Inference output will be saved in `AiOS/demo/{INPUT_VIDEO}_out` 
 
 ```bash
-cd main
-sh scripts/inference.sh {INPUT_VIDEO} {OUTPUT_DIR} 
+# CHECKPOINT: checkpoint path
+# INPUT_VIDEO: input video path
+# OUTPUT_DIR: output path
+# NUM_PERSON: num of person. This parameter sets the expected number of persons to be detected in the input (image or video). 
+#   The default value is 1, meaning the algorithm will try to detect at least one person. If you know the maximum number of persons
+#   that can appear simultaneously, you can set this variable to that number to optimize the detection process (a lower threshold is recommended as well).
+# THRESHOLD: socre threshold. This parameter sets the score threshold for person detection. The default value is 0.5. 
+#   If the confidence score of a detected person is lower than this threshold, the detection will be discarded. 
+#   Adjusting this threshold can help in filtering out false positives or ensuring only high-confidence detections are considered.
+# GPU_NUM: GPU num. 
+sh scripts/inference.sh {CHECKPOINT} {INPUT_VIDEO} {OUTPUT_DIR} {NUM_PERSON} {THRESHOLD} {THRESHOLD}
 
 # For inferencing short_video.mp4 with output directory of demo/short_video_out
-sh scripts/inference.sh short_video demo
+sh scripts/inference.sh data/checkpoint/aios_checkpoint.pth short_video.mp4 demo 2 0.1 8
 ```
 # Test
 

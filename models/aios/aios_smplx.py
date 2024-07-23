@@ -9,9 +9,7 @@ from torch import nn
 from torch import Tensor
 from util import box_ops
 from util.keypoint_ops import keypoint_xyzxyz_to_xyxyzz
-from util.misc import (NestedTensor, nested_tensor_from_tensor_list, accuracy,
-                       get_world_size, interpolate,
-                       is_dist_avail_and_initialized, inverse_sigmoid)
+from util.misc import (NestedTensor, nested_tensor_from_tensor_list, inverse_sigmoid)
 from .backbones import build_backbone
 from .matcher import build_matcher
 from .transformer import build_transformer
@@ -120,9 +118,6 @@ class AiOSSMPLX(nn.Module):
         ])
         assert not dn_batch_gt_fuse
 
-        # build human body
-        # if train:
-        #     self.body_model = build_body_model(body_model)
         if inference:
             body_model=dict(
                 type='smplx',
@@ -200,7 +195,6 @@ class AiOSSMPLX(nn.Module):
                 copy.deepcopy(_class_embed)
                 for i in range(transformer.num_decoder_layers)
             ]
-
 
         ###########################################################################
         #                    body bbox + l/r hand box + face box
@@ -450,29 +444,6 @@ class AiOSSMPLX(nn.Module):
                                num_box_decoder_layers)
             ]
 
-        ###########################################################################
-        #  smplx body pose + hand pose + expression + betas + kp2d + kp3d + cam
-        ###########################################################################
-
-        # 1. smplx body pose embed
-        # _smplx_pose_embed = MLP(hidden_dim * (self.num_body_points + 1),
-        #                        hidden_dim, 23 * 6, 3)
-        # nn.init.constant_(_smplx_pose_embed.layers[-1].weight.data, 0)
-        # nn.init.constant_(_smplx_pose_embed.layers[-1].bias.data, 0)
-
-        # if dec_pred_bbox_embed_share:
-        #     smplx_pose_embed_layerlist = [
-        #         _smplx_pose_embed
-        #         for i in range(transformer.num_decoder_layers -
-        #                        num_box_decoder_layers + 1)
-        #     ]
-        # else:
-        #     smplx_pose_embed_layerlist = [
-        #         copy.deepcopy(_smplx_pose_embed)
-        #         for i in range(transformer.num_decoder_layers -
-        #                        num_box_decoder_layers + 1)
-        #     ]
-
         # 2. smplx hand pose embed
         _smplx_hand_pose_embed_layer_2_3 = \
             MLP(hidden_dim, hidden_dim, 15 * 6, 3)
@@ -484,8 +455,6 @@ class AiOSSMPLX(nn.Module):
         nn.init.constant_(_smplx_hand_pose_embed_layer_4_5.layers[-1].weight.data, 0)
         nn.init.constant_(_smplx_hand_pose_embed_layer_4_5.layers[-1].bias.data, 0)
 
-
-        
         if dec_pred_bbox_embed_share:
             smplx_hand_pose_embed_layerlist = [
                 _smplx_hand_pose_embed_layer_2_3
@@ -500,7 +469,6 @@ class AiOSSMPLX(nn.Module):
                 for i in range(transformer.num_decoder_layers -
                                num_box_decoder_layers)
             ]
-
 
         # 3. smplx face expression 
 
@@ -530,24 +498,6 @@ class AiOSSMPLX(nn.Module):
             ]
         
 
-        # _smplx_expression_embed = MLP(hidden_dim * (self.num_face_points + 2),
-        #                        hidden_dim, 10, 3)
-        # nn.init.constant_(_smplx_expression_embed.layers[-1].weight.data, 0)
-        # nn.init.constant_(_smplx_expression_embed.layers[-1].bias.data, 0)
-
-        # if dec_pred_bbox_embed_share:
-        #     smplx_expression_embed_layerlist = [
-        #         _smplx_expression_embed
-        #         for i in range(transformer.num_decoder_layers -
-        #                        num_hand_face_decoder_layers)
-        #     ]
-        # else:
-        #     smplx_expression_embed_layerlist = [
-        #         copy.deepcopy(_smplx_expression_embed)
-        #         for i in range(transformer.num_decoder_layers -
-        #                        num_hand_face_decoder_layers)
-        #     ]
-
         # 4. smplx jaw pose embed
         _smplx_jaw_embed_2_3 = MLP(hidden_dim * 1,
                                hidden_dim, 6, 3)
@@ -572,8 +522,6 @@ class AiOSSMPLX(nn.Module):
                 for i in range(
                     transformer.num_decoder_layers -  num_box_decoder_layers)
             ]
-            
-        ###############
 
         self.bbox_embed = nn.ModuleList(box_body_embed_layerlist)
         self.class_embed = nn.ModuleList(class_embed_layerlist)
@@ -589,12 +537,8 @@ class AiOSSMPLX(nn.Module):
         self.smpl_pose_embed = nn.ModuleList(smpl_pose_embed_layerlist)
         self.smpl_beta_embed = nn.ModuleList(smpl_beta_embed_layerlist)
         self.smpl_cam_embed = nn.ModuleList(cam_embed_layerlist)
-        # self.smpl_cam_f_embed = nn.ModuleList(f_embed_layerlist)
-        # self.transformer.decoder.smpl_pose_embed = self.smpl_pose_embed
-        # self.transformer.decoder.smpl_beta_embed = self.smpl_beta_embed
-        # self.transformer.decoder.smpl_cam_embed = self.smpl_cam_embed
 
-        # smplx lhand kp
+        # smplx hand kp
         self.bbox_hand_embed = nn.ModuleList(box_hand_embed_layerlist)
         self.bbox_hand_hw_embed = nn.ModuleList(box_hand_hw_embed_layerlist)
         self.pose_hand_embed = nn.ModuleList(pose_hand_embed_layerlist)
@@ -618,16 +562,10 @@ class AiOSSMPLX(nn.Module):
             
         # smplx 
         self.smpl_hand_pose_embed = nn.ModuleList(smplx_hand_pose_embed_layerlist)
-        # self.smplx_rhand_pose_embed = nn.ModuleList(smplx_rhand_pose_embed_layerlist)
         self.smpl_expr_embed = nn.ModuleList(smplx_expression_embed_layerlist)
         self.smpl_jaw_embed = nn.ModuleList(smplx_jaw_embed_layerlist)
 
-        # self.transformer.decoder.smplx_hand_pose_embed = self.smplx_hand_pose_embed
-        # self.transformer.decoder.smplx_rhand_pose_embed = self.smplx_rhand_pose_embed
-        # self.transformer.decoder.num_whole_bosmpl_expr_embeddy_points = self.smplx_expression_embed
-        # self.transformer.decoder.smpl_jaw_embed = self.smplx_jaw_embed
-        
-        #########
+        #
         self.transformer.decoder.num_hand_face_decoder_layers = num_hand_face_decoder_layers
         self.transformer.decoder.num_box_decoder_layers = num_box_decoder_layers
         self.transformer.decoder.num_body_points = num_body_points
@@ -656,22 +594,6 @@ class AiOSSMPLX(nn.Module):
             self.refpoint_embed = None
 
         self._reset_parameters()
-
-    def get_camera_trans(self, cam_param, input_body_shape):
-        # camera translation
-        t_xy = cam_param[:, :2]
-        gamma = torch.sigmoid(cam_param[:, 2])  # apply sigmoid to make it positive
-        k_value = torch.FloatTensor(
-            [
-                math.sqrt(
-                    self.focal_length[0] * self.focal_length[1] * self.camera_3d_size * self.camera_3d_size / 
-                    (input_body_shape[0] * input_body_shape[1])
-                )
-            ]
-        ).cuda().view(-1)
-        t_z = k_value * gamma
-        cam_trans = torch.cat((t_xy, t_z[:, None]), 1)
-        return cam_trans
 
     def _reset_parameters(self):
         # init input_proj
@@ -755,35 +677,6 @@ class AiOSSMPLX(nn.Module):
                     3 + self.num_body_points + self.num_hand_points * 2]:
                     
                     attn_mask3[:, :, match_x, kpt_index] = False
-
-            # num_points = self.num_whole_body_points + 4
-            # device = targets[0]['boxes'].device
-            # bs = len(targets)
-            # attn_mask_infere = torch.zeros(
-            #     bs,
-            #     self.nheads,
-            #     self.num_group * num_points,
-            #     self.num_group * num_points,
-            #     device=device,
-            #     dtype=torch.bool)
-            # group_bbox_kpt = num_points
-            # group_nobbox_kpt = self.num_body_points
-            # kpt_index = [
-            #     x for x in range(self.num_group * num_points)
-            #     if x % num_points == 0
-            # ]
-            # for matchj in range(self.num_group * num_points):
-            #     sj = (matchj // group_bbox_kpt) * group_bbox_kpt
-            #     ej = (matchj // group_bbox_kpt + 1) * group_bbox_kpt
-            #     if sj > 0:
-            #         attn_mask_infere[:, :, matchj, :sj] = True
-            #     if ej < self.num_group * num_points:
-            #         attn_mask_infere[:, :, matchj, ej:] = True
-            # for match_x in range(self.num_group * num_points):
-            #     if match_x % group_bbox_kpt == 0:
-            #         attn_mask_infere[:, :, match_x, kpt_index] = False
-
-            # attn_mask_infere = attn_mask_infere.flatten(0, 1)
             attn_mask2 = attn_mask2.flatten(0, 1)
             attn_mask3 = attn_mask3.flatten(0, 1)
             return None, None, None, attn_mask2, attn_mask3, None
@@ -891,7 +784,6 @@ class AiOSSMPLX(nn.Module):
         input_query_bbox = inverse_sigmoid(knwon_boxes_expand)
 
         # prepare mask
-
         if 'group2group' in self.dn_attn_mask_type_list:
             attn_mask = torch.zeros(bs,
                                     self.nheads,
@@ -1126,12 +1018,6 @@ class AiOSSMPLX(nn.Module):
                     layer_delta_unsig + inverse_sigmoid(layer_ref_sig)
                 layer_body_box_outputs_unsig = layer_body_box_outputs_unsig.sigmoid()
                 layer_cls = layer_cls_embed(layer_hs)
-                # import mmcv
-                # import cv2
-                # img = (data_batch['img'][0]*255).permute(1,2,0).int().detach().cpu().numpy()
-                # bbox = (box_ops.box_cxcywh_to_xyxy(layer_body_box_outputs_unsig[0][0]).reshape(2,2).detach().cpu().numpy()*data_batch['img_shape'].cpu().numpy()[0, ::-1]).reshape(1,4)
-                # img = mmcv.imshow_bboxes(img.copy(), bbox, show=False)
-                # cv2.imwrite('test.png',img)
                 outputs_body_bbox_list.append(layer_body_box_outputs_unsig)
                 outputs_class.append(layer_cls)
                 
@@ -1232,21 +1118,12 @@ class AiOSSMPLX(nn.Module):
             x for x in range(self.num_group * (self.num_whole_body_points + 4))
             if (x % (self.num_whole_body_points + 4) in range(1,self.num_body_points+1))
         ]
-        
-        lhand_bbox_index = [
-            x for x in range(self.num_group * (self.num_body_points + 4))
-            if x % (self.num_body_points + 4) != 1
-        ]
         lhand_kpt_index = [
             x for x in range(self.num_group * (self.num_whole_body_points + 4))
             if (x % (self.num_whole_body_points + 4) in range(
                 self.num_body_points+2, 
                 self.num_body_points+self.num_hand_points+2))]
         
-        rhand_bbox_index = [
-            x for x in range(self.num_group * (self.num_body_points + 4))
-            if x % (self.num_body_points + 4) != 2
-        ]
         rhand_kpt_index = [
             x for x in range(self.num_group * (self.num_whole_body_points + 4))
             if (x % (self.num_whole_body_points + 4) in range(
@@ -1254,18 +1131,12 @@ class AiOSSMPLX(nn.Module):
                 self.num_body_points+self.num_hand_points*2+3))
         ]
         
-        face_bbox_index = [
-            x for x in range(self.num_group * (self.num_body_points + 4))
-            if x % (self.num_body_points + 4) != 3
-        ]
         face_kpt_index = [
             x for x in range(self.num_group * (self.num_whole_body_points + 4))
             if (x % (self.num_whole_body_points + 4) in range(
                 self.num_body_points+self.num_hand_points*2+4, 
                 self.num_body_points+self.num_hand_points*2+self.num_face_points+4))
         ]
-        
-        # smpl pose
         
         # body box, kps, lhand box
         body_index = list(range(0,self.num_body_points+2))
@@ -1383,18 +1254,6 @@ class AiOSSMPLX(nn.Module):
                                  vis_xy_unsig[:, :, 0].unsqueeze(-1)),
                                 dim=-1)
                 xyv = xyv.sigmoid()
-
-                # from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                # img  =(data_batch['img'][0].permute(1,2,0)*255).int().cpu().numpy()
-                # gt_kp2d = xyv[0,:17]
-                # coco_kps = gt_kp2d[:,:2].reshape(17,2).detach().cpu().numpy() * data_batch['img_shape'].cpu().numpy()[0,None,None,::-1]
-                # visualize_kp2d(
-                #     coco_kps, 
-                #     output_path='.', 
-                #     image_array=img.copy()[None], 
-                #     data_source='coco',
-                #     overwrite=True)
-
                 layer_res = xyv.reshape(
                     (bs, self.num_group, self.num_body_points,
                      3)).flatten(2, 3)
@@ -1510,13 +1369,6 @@ class AiOSSMPLX(nn.Module):
                     dec_lid - self.num_box_decoder_layers](smpl_feats)
                 smpl_cam = self.smpl_cam_embed[
                     dec_lid - self.num_box_decoder_layers](smpl_feats)
-                # smpl_cam_f =  self.smpl_cam_f_embed[
-                #      dec_lid - self.num_box_decoder_layers](smpl_feats)
-
-                # zero
-                # smpl_lhand_pose = layer_hs.new_zeros(bs, self.num_group, 15, 3, 3)
-                # smpl_rhand_pose = layer_hs.new_zeros(bs, self.num_group, 15, 3, 3)
-                # smpl_expr = layer_hs.new_zeros(bs, self.num_group, 10)
                 smpl_expr = self.smpl_expr_embed[
                     dec_lid - self.num_box_decoder_layers](smpl_face_pose_feats)
                 # smpl_jaw_pose = layer_hs.new_zeros(bs, self.num_group, 3)
@@ -1527,8 +1379,6 @@ class AiOSSMPLX(nn.Module):
 
                 if self.body_model is not None:
                     smpl_pose_ = rotmat_to_aa(smpl_pose)
-                    # smpl_lhand_pose_ = rotmat_to_aa(smpl_lhand_pose)
-                    # smpl_rhand_pose_ = rotmat_to_aa(smpl_rhand_pose)
                     smpl_lhand_pose_ = layer_hs.new_zeros(bs, self.num_group, 15, 3)
                     smpl_rhand_pose_ = layer_hs.new_zeros(bs, self.num_group, 15, 3)
                     smpl_jaw_pose_ = rotmat_to_aa(smpl_jaw_pose)
@@ -1552,8 +1402,6 @@ class AiOSSMPLX(nn.Module):
                         bs, self.num_group, -1, 3)
                     smpl_verts = pred_output['vertices'].reshape(
                         bs, self.num_group, -1, 3)
-                    # pred_vertices = pred_output['vertices'].reshape(bs, -1, 6890, 3)
-
                 outputs_smpl_pose_list.append(smpl_pose)
                 outputs_smpl_rhand_pose_list.append(smpl_rhand_pose)
                 outputs_smpl_lhand_pose_list.append(smpl_lhand_pose)
@@ -1561,10 +1409,7 @@ class AiOSSMPLX(nn.Module):
                 outputs_smpl_jaw_pose_list.append(smpl_jaw_pose)
                 outputs_smpl_beta_list.append(smpl_beta)
                 outputs_smpl_cam_list.append(smpl_cam)
-                # outputs_smpl_cam_f_list.append(smpl_cam_f)
                 outputs_smpl_kp3d_list.append(smpl_kp3d)
-                
-
             else:
                 bs = layer_ref_sig.shape[0]
                 layer_hs_body_kpt = \
@@ -1749,7 +1594,7 @@ class AiOSSMPLX(nn.Module):
                                                 
                 smpl_pose = self.smpl_pose_embed[
                     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
-                # import ipdb;ipdb.set_trace()
+                
                 smpl_pose = rot6d_to_rotmat(smpl_pose.reshape(-1, 6)).reshape(
                     bs, self.num_group, self.body_model_joint_num, 3, 3)
                 smpl_lhand_pose = self.smpl_hand_pose_embed[
@@ -1773,7 +1618,7 @@ class AiOSSMPLX(nn.Module):
                     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
                 # smpl_cam_f = self.smpl_cam_f_embed[
                 #     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
-                # import ipdb;ipdb.set_trace()
+                
                 num_samples = smpl_beta.reshape(-1, 10).shape[0]
                 device = smpl_beta.device
                 leye_pose = torch.zeros_like(smpl_jaw_pose)
@@ -1800,24 +1645,11 @@ class AiOSSMPLX(nn.Module):
                         reye_pose=reye_pose_,
                         jaw_pose=smpl_jaw_pose_.reshape(-1, 3),
                         expression=smpl_expr.reshape(-1, 10),
-                        # expression=layer_hs.new_zeros(bs, self.num_group, 10).reshape(-1, 10),
                     )
                     smpl_kp3d = pred_output['joints'].reshape(
                         bs, self.num_group, -1, 3)
                     smpl_verts = pred_output['vertices'].reshape(
                         bs, self.num_group, -1, 3)
-                    # pred_vertices = pred_output['vertices'].reshape(bs, -1, 6890, 3)
-                    # from detrsmpl.core.visualization.visualize_keypoints3d import visualize_kp3d
-                    # visualize_kp3d(smpl_kp3d[0,:100].detach().cpu().numpy(),
-                    #                         output_path='./figs/pred3d',
-                    #                         data_source='smplx_137')
-                    # import numpy as np
-                    # from pytorch3d.io import save_obj
-                    # save_obj(
-                    #     '1.obj', 
-                    #     torch.tensor(pred_output['vertices'][0]), 
-                    #     torch.tensor(self.body_model.faces.astype(np.float)))
-                    # exit()
                 outputs_smpl_pose_list.append(smpl_pose)
                 outputs_smpl_rhand_pose_list.append(smpl_rhand_pose)
                 outputs_smpl_lhand_pose_list.append(smpl_lhand_pose)
@@ -1888,7 +1720,6 @@ class AiOSSMPLX(nn.Module):
             'pred_smpl_expr': outputs_smpl_expr_list[-1],
             'pred_smpl_beta': outputs_smpl_beta_list[-1],  # [B, 100, 10]
             'pred_smpl_cam': outputs_smpl_cam_list[-1],
-            # 'pred_smpl_cam_f': outputs_smpl_cam_f_list[-1],
             'pred_smpl_kp3d': outputs_smpl_kp3d_list[-1],
             'pred_smpl_verts': outputs_smpl_verts_list[-1],
             'pred_smpl_fullpose': full_pose
@@ -1988,7 +1819,6 @@ class AiOSSMPLX(nn.Module):
             'pred_smpl_expr': n,
             'pred_smpl_beta': o,
             'pred_smpl_cam': p,
-            # 'pred_smpl_cam_f': q,
             'pred_smpl_kp3d': q
         } for a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q in zip(
             outputs_class[:-1], 
@@ -2014,13 +1844,12 @@ class AiOSSMPLX(nn.Module):
         data_batch_coco = []
         instance_dict = {}
         img_list = data_batch['img'].float()
-        # input_img_h, input_img_w = data_batch['image_metas'][0]['batch_input_shape']
         batch_size, _, input_img_h, input_img_w = img_list.shape
         device = img_list.device
         masks = torch.ones((batch_size, input_img_h, input_img_w),
                            dtype=torch.bool,
                            device=device)
-        # import ipdb;ipdb.set_trace()
+        
 
         # cv2.imread(data_batch['img_metas'][img_id]['image_path']).shape
         for img_id in range(batch_size):
@@ -2044,8 +1873,6 @@ class AiOSSMPLX(nn.Module):
                 lhand_kp2d, _  = convert_kps(instance_kp2d, 'smplx_137', 'smplx_lhand', approximate=True)
                 rhand_kp2d, _  = convert_kps(instance_kp2d, 'smplx_137', 'smplx_rhand', approximate=True)
                 face_kp2d, _  = convert_kps(instance_kp2d, 'smplx_137', 'smplx_face', approximate=True)
-                # from util.vis_utils import show_bbox
-                # show_bbox(img_list[img_id],instance_kp2d.cpu().numpy(),data_batch['bbox_xywh'][img_id].cpu().numpy)
                 body_kp2d[:,:,0] = body_kp2d[:,:,0]/cfg.output_hm_shape[2]
                 body_kp2d[:,:,1] = body_kp2d[:,:,1]/cfg.output_hm_shape[1]
                 body_kp2d = torch.cat([body_kp2d[:,:,:2].flatten(1),body_kp2d[:,:,2]],dim=-1)
@@ -2084,30 +1911,6 @@ class AiOSSMPLX(nn.Module):
                                                     dtype=torch.long,
                                                     device=device)
                 data_batch_coco.append(instance_dict)               
-                # body_bbox = data_batch['body_bbox'][img_id].clone().float().reshape(-1, 4)
-                # lhand_bbox = data_batch['lhand_bbox'][img_id].clone().float().reshape(-1, 4)
-                # rhand_bbox = data_batch['rhand_bbox'][img_id].clone().float().reshape(-1, 4)
-                # face_bbox = data_batch['face_bbox'][img_id].clone().float().reshape(-1, 4)
-                # vis = False
-                # if vis:
-                #     import mmcv
-                    # body_bbox[:, 0] *= img_w
-                    # body_bbox[:, 1] *= img_h
-                    # body_bbox[:, 2] *= img_w
-                    # body_bbox[:, 3] *= img_h
-                #     img = (data_batch['img'][img_id]*255).int().permute(1,2,0).cpu().detach().numpy()
-                #     img = mmcv.imshow_bboxes(img.copy(), face_bbox.cpu().numpy(), show=False)
-                #     cv2.imwrite('test.png', img)
-                # import ipdb;ipdb.set_trace()
-                # instance_kp2d[:,:,0] = instance_kp2d[:,:,0]/cfg.output_hm_shape[2]*img_w
-                # instance_kp2d[:,:,1] = instance_kp2d[:,:,1]/cfg.output_hm_shape[1]*img_h
-                # from detrsmpl.core.visualization.visualize_keypoints2d import visualize_kp2d
-                # img = (data_batch['img'][img_id]*255).int().permute(1,2,0).cpu().detach().numpy()
-                # img1 = visualize_kp2d(instance_kp2d.cpu().detach().numpy(),image_array=img[None].copy(),return_array=True)
-                # cv2.imwrite('test.png',img1[0])
-                # lhand_kp2d[:,:,0] = lhand_kp2d[:,:,0]/cfg.output_hm_shape[2]*img_w
-                # lhand_kp2d[:,:,1] = lhand_kp2d[:,:,1]/cfg.output_hm_shape[1]*img_h
-                # lhand_kp2d = convert_kps(lhand_kp2d, 'smplx_lhand', 'smplx', approximate=True)[0]
             else:
                 instance_body_bbox = torch.cat([data_batch['body_bbox_center'][img_id],\
                                                 data_batch['body_bbox_size'][img_id]],dim=-1)
@@ -2120,67 +1923,6 @@ class AiOSSMPLX(nn.Module):
 
         input_img = NestedTensor(img_list, masks)
         return input_img, data_batch_coco
-
-
-    def keypoints_to_scaled_bbox_bfh(
-        self, keypoints, occ=None, 
-        body_scale=1.0, fh_scale=1.0, 
-        convention='smplx'):
-        '''Obtain scaled bbox in xyxy format given keypoints
-        Args:
-            keypoints (np.ndarray): Keypoints
-            scale (float): Bounding Box scale
-        Returns:
-            bbox_xyxy (np.ndarray): Bounding box in xyxy format
-        '''
-        bboxs = []
-
-        # supported kps.shape: (1, n, k) or (n, k), k = 2 or 3
-        if keypoints.ndim == 3:
-            keypoints = keypoints[0]
-        if keypoints.shape[-1] != 2:
-            keypoints = keypoints[:, :2]
-
-        for body_part in ['body', 'head', 'left_hand', 'right_hand']:
-            if body_part == 'body':
-                scale = body_scale
-                kps = keypoints
-            else:
-                scale = fh_scale
-                kp_id = get_keypoint_idxs_by_part(body_part, convention=convention)
-                kps = keypoints[kp_id]
-
-            if not occ is None:
-                occ_p = occ[kp_id]
-                if np.sum(occ_p) / len(kp_id) >= 0.1:
-                    conf = 0
-                    # print(f'{body_part} occluded, occlusion: {np.sum(occ_p) / len(kp_id)}, skip')
-                else:
-                    # print(f'{body_part} good, {np.sum(self_occ_p + occ_p) / len(kp_id)}')
-                    conf = 1
-            else:
-                conf = 1
-            if body_part == 'body':
-                conf = 1
-
-            xmin, ymin = np.amin(kps, axis=0)
-            xmax, ymax = np.amax(kps, axis=0)
-
-            width = (xmax - xmin) * scale
-            height = (ymax - ymin) * scale
-
-            x_center = 0.5 * (xmax + xmin)
-            y_center = 0.5 * (ymax + ymin)
-            xmin = x_center - 0.5 * width
-            xmax = x_center + 0.5 * width
-            ymin = y_center - 0.5 * height
-            ymax = y_center + 0.5 * height
-
-            bbox = np.stack([xmin, ymin, xmax, ymax, conf], axis=0).astype(np.float32)
-            bboxs.append(bbox)
-        
-        return bboxs
-
 
 
 
@@ -2450,11 +2192,6 @@ def build_aios_smplx(args, cfg):
     }
     # criterion_smpl=build_architecture(cfg['smpl_loss'])
     return model, criterion, postprocessors, postprocessors_aios
-
-
-
-
-
 
 
 
@@ -2915,22 +2652,6 @@ class AiOSSMPLX_Box(nn.Module):
 
         self._reset_parameters()
 
-    def get_camera_trans(self, cam_param, input_body_shape):
-        # camera translation
-        t_xy = cam_param[:, :2]
-        gamma = torch.sigmoid(cam_param[:, 2])  # apply sigmoid to make it positive
-        k_value = torch.FloatTensor(
-            [
-                math.sqrt(
-                    self.focal_length[0] * self.focal_length[1] * self.camera_3d_size * self.camera_3d_size / 
-                    (input_body_shape[0] * input_body_shape[1])
-                )
-            ]
-        ).cuda().view(-1)
-        t_z = k_value * gamma
-        cam_trans = torch.cat((t_xy, t_z[:, None]), 1)
-        return cam_trans
-
     def _reset_parameters(self):
         # init input_proj
         for proj in self.input_proj:
@@ -2969,7 +2690,6 @@ class AiOSSMPLX_Box(nn.Module):
                 if match_x % group_bbox_kpt in [0, 1, 2, 3]:
                     # each query (hand face body) should associate with all body query
                     attn_mask2[:,:,match_x, kpt_index]=False
-
 
             num_points = 4
             attn_mask3 = torch.zeros(
@@ -3685,7 +3405,7 @@ class AiOSSMPLX_Box(nn.Module):
                                                 
                 smpl_pose = self.smpl_pose_embed[
                     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
-                # import ipdb;ipdb.set_trace()
+                
                 smpl_pose = rot6d_to_rotmat(smpl_pose.reshape(-1, 6)).reshape(
                     bs, self.num_group, self.body_model_joint_num, 3, 3)
                 smpl_lhand_pose = self.smpl_hand_pose_embed[
@@ -3707,7 +3427,7 @@ class AiOSSMPLX_Box(nn.Module):
                     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
                 smpl_cam = self.smpl_cam_embed[
                     dec_lid - self.num_box_decoder_layers](smpl_body_pose_feats)
-                # import ipdb;ipdb.set_trace()
+                
                 num_samples = smpl_beta.reshape(-1, 10).shape[0]
                 device = smpl_beta.device
                 leye_pose = torch.zeros_like(smpl_jaw_pose)
@@ -3908,7 +3628,7 @@ class AiOSSMPLX_Box(nn.Module):
         masks = torch.ones((batch_size, input_img_h, input_img_w),
                            dtype=torch.bool,
                            device=device)
-        # import ipdb;ipdb.set_trace()
+        
         if self.num_body_points == 17:
             ed_convention = 'coco'
         elif self.num_body_points == 14:
@@ -3988,67 +3708,6 @@ class AiOSSMPLX_Box(nn.Module):
 
         input_img = NestedTensor(img_list, masks)
         return input_img, data_batch_coco
-
-
-    def keypoints_to_scaled_bbox_bfh(
-        self, keypoints, occ=None, 
-        body_scale=1.0, fh_scale=1.0, 
-        convention='smplx'):
-        '''Obtain scaled bbox in xyxy format given keypoints
-        Args:
-            keypoints (np.ndarray): Keypoints
-            scale (float): Bounding Box scale
-        Returns:
-            bbox_xyxy (np.ndarray): Bounding box in xyxy format
-        '''
-        bboxs = []
-
-        # supported kps.shape: (1, n, k) or (n, k), k = 2 or 3
-        if keypoints.ndim == 3:
-            keypoints = keypoints[0]
-        if keypoints.shape[-1] != 2:
-            keypoints = keypoints[:, :2]
-
-        for body_part in ['body', 'head', 'left_hand', 'right_hand']:
-            if body_part == 'body':
-                scale = body_scale
-                kps = keypoints
-            else:
-                scale = fh_scale
-                kp_id = get_keypoint_idxs_by_part(body_part, convention=convention)
-                kps = keypoints[kp_id]
-
-            if not occ is None:
-                occ_p = occ[kp_id]
-                if np.sum(occ_p) / len(kp_id) >= 0.1:
-                    conf = 0
-                    # print(f'{body_part} occluded, occlusion: {np.sum(occ_p) / len(kp_id)}, skip')
-                else:
-                    # print(f'{body_part} good, {np.sum(self_occ_p + occ_p) / len(kp_id)}')
-                    conf = 1
-            else:
-                conf = 1
-            if body_part == 'body':
-                conf = 1
-
-            xmin, ymin = np.amin(kps, axis=0)
-            xmax, ymax = np.amax(kps, axis=0)
-
-            width = (xmax - xmin) * scale
-            height = (ymax - ymin) * scale
-
-            x_center = 0.5 * (xmax + xmin)
-            y_center = 0.5 * (ymax + ymin)
-            xmin = x_center - 0.5 * width
-            xmax = x_center + 0.5 * width
-            ymin = y_center - 0.5 * height
-            ymax = y_center + 0.5 * height
-
-            bbox = np.stack([xmin, ymin, xmax, ymax, conf], axis=0).astype(np.float32)
-            bboxs.append(bbox)
-        
-        return bboxs
-
 
 @MODULE_BUILD_FUNCS.registe_with_name(module_name='aios_smplx_box')
 def build_aios_smplx_box(args, cfg):

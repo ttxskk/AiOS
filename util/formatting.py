@@ -257,12 +257,9 @@ class DefaultFormatBundle:
                 # will be wrong. Only used for YOLOX currently .
                 img = img.astype(np.float32)
             # add default meta keys
-
-            # import ipdb;ipdb.set_trace()
             results = self._add_default_meta_keys(results)
             if len(img.shape) < 3:
                 img = np.expand_dims(img, -1)
-            # import ipdb;ipdb.set_trace()
             img = np.ascontiguousarray(img.transpose(2, 0, 1))
             results['img'] = DC(to_tensor(img),
                                 padding_value=self.pad_val['img'],

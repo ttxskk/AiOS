@@ -210,19 +210,10 @@ continue_train = True
 pretrained_model_path = '../output/train_gta_synbody_ft_20230410_132110/model_dump/snapshot_2.pth.tar'
 
 # dataset setting
-# dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA']
-# trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA']
-dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA']
-trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA']
+dataset_list = []
+trainset_3d = []
 trainset_2d = []
-trainset_partition = {
-            'AGORA_MM': 0.4, 
-            'BEDLAM': 0.7,
-            'COCO_NA': 1,
-            
-            # 'EgoBody_Egocentric': 1,
-            # 'EgoBody_Kinect': 1.0,
-            }
+trainset_partition = {}
 trainset_humandata = []
 testset = 'INFERENCE'
 train_sizes=[480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]

@@ -42,7 +42,6 @@ class INFERENCE(torch.utils.data.Dataset):
 
         self.is_vid = False
         
-        # can you change isfile to decide if it is mp4
         rank, _ = get_dist_info()
         if self.img_dir.endswith('.mp4'):
             self.is_vid = True
@@ -71,9 +70,7 @@ class INFERENCE(torch.utils.data.Dataset):
             dist.barrier()
         self.img_paths = sorted(glob(self.tmp_dir+'/*',recursive=True)) 
         self.score_threshold = 0.2
-        self.resolution = [720 ,1280] # AGORA test
-        # self.resolution = [1200, 1600] # EHF
-        # self.img_paths = sorted(glob(self.img_dir,recursive=True))        
+        self.resolution = [720 ,1280] # AGORA test     
         self.format = DefaultFormatBundle()
         self.normalize = Normalize(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375])
        
@@ -234,10 +231,10 @@ class INFERENCE(torch.utils.data.Dataset):
                 output.update({out_key: out_value})
                 
                 # show bbox 
-                # img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
-                # img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
-                # img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
-                # img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
+                img = mmcv.imshow_bboxes(img, body_bbox[:i], show=False, colors='green')
+                img = mmcv.imshow_bboxes(img, lhand_bbox[:i], show=False, colors='blue')
+                img = mmcv.imshow_bboxes(img, rhand_bbox[:i], show=False, colors='yellow')
+                img = mmcv.imshow_bboxes(img, face_bbox[:i], show=False, colors='red')
                 
                 verts = out['smpl_verts'][:i] + out['cam_trans'][:i][:, None]
                 body_model_cfg = dict(

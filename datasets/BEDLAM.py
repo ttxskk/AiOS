@@ -8,11 +8,8 @@ class BEDLAM(HumanDataset):
         super(BEDLAM, self).__init__(transform, data_split)
 
         self.img_dir = './data/datasets/bedlam/train_images/'
-        # self.annot_path_cache = 'data/preprocessed_npz/cache/bedlam_train_multi_fix_img_shape_cache.npz'
-
         self.annot_path = 'data/preprocessed_npz/multihuman_data/bedlam_train_multi_0915.npz'
-        self.annot_path_cache = 'data/preprocessed_npz/cache/bedlam_train_cache_1211_sample5_balance_fix_exp.npz'        
-        # self.annot_path_cache = 'data/preprocessed_npz/cache/bedlam_train_multi_fix_img_shape_cache_all.npz' 
+        self.annot_path_cache = 'data/preprocessed_npz/cache/bedlam_train_cache_080824.npz'        
         self.use_cache = getattr(cfg, 'use_cache', False)
         
         self.img_shape = None  #1024, 1024)  # (h, w)

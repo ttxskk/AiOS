@@ -32,27 +32,22 @@ class UBody_MM(HumanDataset):
     def __init__(self, transform, data_split):
         super(UBody_MM, self).__init__(transform, data_split)
 
-        self.img_dir = 'data/data_weichen/ubody'
-
-        # self.test_vid_list = 'dataset/ubody/splits/intra_scene_test_list.npy'
-        
-        if data_split == 'train':
-            self.annot_path = 'data/preprocessed_npz/multihuman_data/ubody_intra_train_231027_all_multi.npz'
-            self.annot_path_cache = 'ubody_intra_train_multi_all_cache_0415.npz'  
-            # self.annot_path = 'data/preprocessed_npz/ubody_train_multi_all.npz'
-            # self.annot_path_cache = 'data/preprocessed_npz/cache/ubody_train_multi_all_cache_10.3.npz'  
-            
+        self.img_dir = 'data/osx_data/UBody'
+        self.data_split = data_split
+        self.test_vid_list = np.load('data/osx_data/UBody/splits/intra_scene_test_list.npy')
+        if self.data_split == 'train':
+            # self.annot_path = 'data/preprocessed_npz/multihuman_data/ubody_intra_train_multi_all.npz'
+            # self.annot_path_cache = 'data/preprocessed_npz/cache/ubody_intra_train_cache_fix8.npz'
+            self.annot_path = 'data/preprocessed_npz/multihuman_data/ubody_train_intra_multi.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/ubody_train_intra_cache_080824.npz'  
             self.sample_interval = getattr(
-                cfg, f'{self.__class__.__name__}_train_sample_interval', 10)
-        elif data_split == 'test':
+                cfg, f'{self.__class__.__name__}_train_sample_interval', 5)
+        elif self.data_split == 'test':
             self.annot_path = 'data/preprocessed_npz/ubody_intra_test_all.npz'
-            self.annot_path_cache = 'data/preprocessed_npz_old/cache/ubody_intra_test_multi_all_smpler_x.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/ubody_intra_test_multi_all_smpler_x.npz'
             self.sample_interval = getattr(
                 cfg, f'{self.__class__.__name__}_test_sample_interval', 100)
-
-        
-        self.test_set = 'val'
-        
+        # self.test_set = 'val'
         self.use_cache = getattr(cfg, 'use_cache', False)
         self.img_shape = None  #1024, 1024)  # (h, w)
         self.cam_param = {}
@@ -68,8 +63,8 @@ class UBody_MM(HumanDataset):
                 print(
                     f'[{self.__class__.__name__}] Cache not found, generating cache...'
                 )
-            self.datalist = self.load_data(train_sample_interval=getattr(
-                cfg, f'{self.__class__.__name__}_train_sample_interval', 10))
+            self.datalist = self.load_data(train_sample_interval=self.sample_interval)
+            
             if self.use_cache:
                 self.save_cache(self.annot_path_cache, self.datalist)
                 
@@ -94,13 +89,21 @@ class UBody_MM(HumanDataset):
         vis_save_dir = cfg.vis_dir
 
         for n in range(sample_num):
-            annot = annots[cur_sample_idx + n]
+            
             out = outs[n]
             mesh_gt = out['smplx_mesh_cam_target']
             mesh_out = out['smplx_mesh_cam']
             cam_trans = out['cam_trans']
-
+            joint_proj = out['smplx_joint_proj']
             img_wh = (out['img_shape'])
+            ann_idx = out['gt_ann_idx']
+            img_path = []
+            for ann_id in ann_idx:
+                img_path.append(annots[ann_id]['img_path'])
+            # print(img_path)
+            eval_result['img_path'] = img_path
+            eval_result['ann_idx'] = ann_idx
+            
             # MPVPE from all vertices
             joint_gt_body_wo_trans = np.dot(smpl_x.j14_regressor,
                                             mesh_gt).transpose(1,0,2)
@@ -168,7 +171,7 @@ class UBody_MM(HumanDataset):
             else:
                 mpvpe_all = 0
             eval_result['mpvpe_all'].append(mpvpe_all)
-
+            
             # MPVPE from hand vertices
             mesh_gt_lhand = mesh_gt[:, smpl_x.hand_vertex_idx['left_hand'], :]
             mesh_out_lhand = mesh_out[:, smpl_x.hand_vertex_idx['left_hand'], :]
@@ -202,7 +205,8 @@ class UBody_MM(HumanDataset):
             else:
                 eval_result['mpvpe_r_hand'].append(np.zeros_like(mpvpe_all))
             if len(mpvpe_hand) > 0:
-                eval_result['mpvpe_hand'].append(np.mean(mpvpe_hand))
+                mpvpe_hand = np.stack(mpvpe_hand,axis=-1)
+                eval_result['mpvpe_hand'].append(np.mean(mpvpe_hand,axis=-1))
             else:
                 eval_result['mpvpe_hand'].append(np.zeros_like(mpvpe_all))
             mesh_out_lhand_align = rigid_align_batch(mesh_out_lhand, mesh_gt_lhand)
@@ -217,6 +221,7 @@ class UBody_MM(HumanDataset):
             else:
                 eval_result['pa_mpvpe_l_hand'].append(np.zeros_like(mpvpe_all))
             if mesh_rhand_valid.sum() != 0:
+                # pa_mpvpe_rhand = np.sqrt(np.sum((mesh_out_rhand_align - mesh_gt_rhand)**2, -1)).sum(-1) * 1000 / (mesh_rhand_valid.sum(-1)+1e-6)
                 pa_mpvpe_rhand = np.sqrt(
                     np.sum((mesh_out_rhand_align - mesh_gt_rhand)**2,
                            -1))[mesh_rhand_valid].mean() * 1000
@@ -225,10 +230,10 @@ class UBody_MM(HumanDataset):
             else:
                 eval_result['pa_mpvpe_r_hand'].append(np.zeros_like(mpvpe_all))
             if len(pa_mpvpe_hand) > 0:
-                eval_result['pa_mpvpe_hand'].append(np.mean(pa_mpvpe_hand))
+                pa_mpvpe_hand = np.stack(pa_mpvpe_hand,axis=-1)
+                eval_result['pa_mpvpe_hand'].append(np.mean(pa_mpvpe_hand,axis=-1))
             else:
                 eval_result['pa_mpvpe_hand'].append(np.zeros_like(np.mean(np.zeros_like(mpvpe_all))))
-                
                 
             # MPVPE from face vertices
             mesh_gt_face = mesh_gt[:, smpl_x.face_vertex_idx, :]
@@ -266,6 +271,7 @@ class UBody_MM(HumanDataset):
         try:
             frame_range = content['frame_range']
         except KeyError:
+            self.num_data = len(content['image_path'])
             frame_range = \
                 np.array([[i, i + 1] for i in range(self.num_data)])
 
@@ -296,6 +302,7 @@ class UBody_MM(HumanDataset):
             gender = meta['gender']
         else:
             gender = None
+            
         face_valid = meta['face_valid']
         lhand_valid = meta['lefthand_valid']
         rhand_valid = meta['righthand_valid']
@@ -303,7 +310,6 @@ class UBody_MM(HumanDataset):
         is_crowd = meta['iscrowd']
         keypoints_valid = content['keypoints2d_ubody'][:,:,2].sum(-1)!=0
         bbox_xywh = content['bbox_xywh']
-        
         
         if 'smplx' in content:
             smplx = content['smplx'].item()
@@ -344,10 +350,6 @@ class UBody_MM(HumanDataset):
         valid_kps3d = False
         keypoints3d_mask = None
         valid_kps3d_mask = False
-        
-        # test_vid_list = np.load(self.test_vid_list)
-        
-        # processing keypoints
         for kps3d_key in KPS3D_KEYS:
             if kps3d_key in content:
                 keypoints3d = decompressed_kps[kps3d_key][:, self.SMPLX_137_MAPPING, :] if decompressed \
@@ -372,28 +374,21 @@ class UBody_MM(HumanDataset):
 
         # processing each image, filter according to bbox valid
         for i in tqdm.tqdm(range(int(num_examples))):
-            
-            if i % self.sample_interval != 0:
+            if self.data_split == 'train' and i % self.sample_interval != 0:
                 continue
-            # if i<8000:
-            #     continue
-            # if i>20:
-            #     break
-            
             frame_start, frame_end = frame_range[i]
             img_path = osp.join(self.img_dir, image_path[frame_start])
-            video_name = img_path.split('/')[-2]
-            if 'Trim' in video_name:
-                video_name = video_name.split('_Trim')[0]
-            # if self.data_split == 'train' and video_name in test_vid_list:
-            #     print('skip train') 
-            #     continue   # exclude the test video
-            
+            vid_name = img_path.split('/')[-2]
+            if 'Trim' in vid_name:
+                vid_name = vid_name.split('_Trim')[0]        
+            if str(vid_name) in self.test_vid_list:
+                continue
             # im_shape = cv2.imread(img_path).shape[:2]
             img_shape = image_shape[
                 frame_start] if image_shape is not None else self.img_shape
             
             bbox_list = bbox_xywh[frame_start:frame_end, :4]
+            
             unique_bbox_idx = np.unique(bbox_list,axis=0,return_index=True)[1]
             unique_bbox_idx.sort()
             unique_bbox_list = bbox_list[unique_bbox_idx]
@@ -430,10 +425,9 @@ class UBody_MM(HumanDataset):
             
             for bbox_i in valid_idx:
                 lhand_bbox = lhand_bbox_xywh[bbox_i]
-                
                 rhand_bbox = rhand_bbox_xywh[bbox_i]
                 face_bbox = face_bbox_xywh[bbox_i]
-                if lhand_bbox[-1] > 0:  # conf > 0
+                if lhand_valid[bbox_i] > 0:  # conf > 0
                     lhand_bbox = lhand_bbox[:4]
                     if hasattr(cfg, 'bbox_ratio'):
                         lhand_bbox = process_bbox(lhand_bbox,
@@ -444,7 +438,7 @@ class UBody_MM(HumanDataset):
                         lhand_bbox[2:] += lhand_bbox[:2]  # xywh -> xyxy
                 else:
                     lhand_bbox = None
-                if rhand_bbox[-1] > 0:
+                if rhand_valid[bbox_i] > 0:
                     rhand_bbox = rhand_bbox[:4]
                     if hasattr(cfg, 'bbox_ratio'):
                         rhand_bbox = process_bbox(rhand_bbox,
@@ -455,7 +449,7 @@ class UBody_MM(HumanDataset):
                         rhand_bbox[2:] += rhand_bbox[:2]  # xywh -> xyxy
                 else:
                     rhand_bbox = None
-                if face_bbox[-1] > 0:
+                if face_valid[bbox_i] > 0:
                     face_bbox = face_bbox[:4]
                     if hasattr(cfg, 'bbox_ratio'):
                         face_bbox = process_bbox(face_bbox,
@@ -499,9 +493,6 @@ class UBody_MM(HumanDataset):
             smplx_param = {k: v[valid_idx] for k, v in smplx.items()}
             gender_ = gender[valid_idx] \
                 if gender is not None else np.array(['neutral']*(valid_num))
-            lhand_bbox_valid = lhand_bbox_xywh[valid_idx,4]
-            rhand_bbox_valid = rhand_bbox_xywh[valid_idx,4]
-            face_bbox_valid = face_bbox_xywh[valid_idx,4]
             
             # TODO: set invalid if None?
             smplx_param['root_pose'] = smplx_param.pop('global_orient', None)
@@ -545,10 +536,12 @@ class UBody_MM(HumanDataset):
                 smplx_param['lhand_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
                 smplx_param['lhand_valid'] = lhand_valid[valid_idx]
+                
             if smplx_param['rhand_pose'] is None or self.body_only == True:
-                smplx_param['rhand_valid'] = rhand_valid[valid_idx]
+                smplx_param['rhand_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
-                smplx_param['rhand_valid'] = rhand_bbox_valid.astype(np.bool8)
+                smplx_param['rhand_valid'] = rhand_valid[valid_idx]
+                
             if smplx_param['expr'] is None or self.body_only == True:
                 smplx_param['face_valid'] = np.zeros(valid_num, dtype=np.bool8)
             else:
@@ -590,7 +583,6 @@ class UBody_MM(HumanDataset):
 
         return datalist
     def __getitem__(self, idx):
-        # print(len(self.datalist))
         try:
             data = copy.deepcopy(self.datalist[idx])
         except Exception as e:
@@ -610,43 +602,18 @@ class UBody_MM(HumanDataset):
         else:
             gender = np.array([-1]*len(bbox))
         img_whole_bbox = np.array([0, 0, img_shape[1], img_shape[0]])
-        # img.shape: h,w,c, e.g. 1080,1920
-        # img_shape: h,w
-        # bbox: x,y,w,h
-        # cropped_img_shape=np.array([img_whole_bbox[3],img_whole_bbox[2]])
-
-        # self.normalize will convert the order
-        # for ida in range(100):
-        #     if os.path.exists('path%d.txt'%ida):
-        #         continue
-        #     else:
-        #         with open('path%d.txt'%ida,'w') as f:
-        #             f.writelines(img_path)
-        #         break
-        
         img = load_img(img_path, order='BGR')
-        # if self.data_split == 'test':
-        #     cv2.imwrite('temp.png',img)
         num_person = len(data['bbox'])
         data_name = self.__class__.__name__
-        img, img2bb_trans, bb2img_trans, rot, do_flip = augmentation_instance_sample(img, img_whole_bbox, self.data_split,data,data_name)
+        img, img2bb_trans, bb2img_trans, rot, do_flip = \
+            augmentation_instance_sample(img, img_whole_bbox, self.data_split,data,data_name)
         cropped_img_shape=img.shape[:2]
-        
-        # 
-        
-        # img = (img.astype(np.float32)) / 255.
-        
-
         num_person = len(data['bbox'])
 
-        
-        
-
         if self.data_split == 'train':
-
             # h36m gt
             if 'joint_cam' in data:
-                joint_cam = data['joint_cam']  # num, 137,4
+                joint_cam = data['joint_cam']
             else:
                 joint_cam = None
             
@@ -664,8 +631,6 @@ class UBody_MM(HumanDataset):
 
             joint_img = data['joint_img']
             
-            
-            # TODO
             # do rotation on keypoints
             joint_img_aug, joint_cam_wo_ra, joint_cam_ra, joint_trunc = \
                 process_db_coord_batch_no_valid(
@@ -673,10 +638,10 @@ class UBody_MM(HumanDataset):
                     self.joint_set['flip_pairs'], img2bb_trans, rot,
                     self.joint_set['joints_name'], smpl_x.joints_name,
                     cropped_img_shape)
+            joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:] * joint_trunc
+
             
-            joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:]*joint_trunc
             # smplx coordinates and parameters
-            
             smplx_param = data['smplx_param']
             part_valid = {
                 'lhand': smplx_param['lhand_valid'],
@@ -685,8 +650,8 @@ class UBody_MM(HumanDataset):
             }
             smplx_pose, smplx_shape, smplx_expr, smplx_pose_valid, \
             smplx_joint_valid, smplx_expr_valid, smplx_shape_valid = \
-                process_human_model_output_batch_simplify(
-                    smplx_param, do_flip, rot, as_smplx)
+                process_human_model_output_batch_ubody(
+                    smplx_param, do_flip, rot, as_smplx, part_valid)
             
             # if cam not provided, we take joint_img as smplx joint 2d, 
             # which is commonly the case for our processed humandata
@@ -700,30 +665,13 @@ class UBody_MM(HumanDataset):
                     num_person, -1)
                 smplx_shape[(np.abs(smplx_shape) > 3).any(axis=1)] = 0.
                 smplx_shape = smplx_shape.reshape(num_person, -1)
-
-            # SMPLX pose parameter validity
-            # for name in ('L_Ankle', 'R_Ankle', 'L_Wrist', 'R_Wrist'):
-            #     smplx_pose_valid[smpl_x.orig_joints_name.index(name)] = 0
-            #import ipdb;ipdb.set_trace()
-
-            smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
-            smplx_pose = smplx_pose*smplx_pose_valid
-            smplx_pose_valid = np.ones([num_person, 159])
-            smplx_expr = smplx_expr*smplx_expr_valid[:, None]
-            smplx_expr_valid = np.ones(num_person)
-            # smplx_expr_valid = np.ones(num_person)
-            # smplx_expr_valid = np.array
-            # SMPLX joint coordinate validity
-            # for name in ('L_Big_toe', 'L_Small_toe', 'L_Heel', 'R_Big_toe', 'R_Small_toe', 'R_Heel'):
-            #     smplx_joint_valid[smpl_x.joints_name.index(name)] = 0
+                
+            # smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
+            
+            # smplx_pose = smplx_pose * smplx_pose_valid
+            # smplx_expr = smplx_expr * smplx_expr_valid[:, None]
             smplx_joint_valid = smplx_joint_valid[:, :, None]
             
-            
-            # TODO: check here
-            # if not (smplx_shape == 0).all():
-            #     smplx_shape_valid = True
-            # else:
-            #     smplx_shape_valid = False
             lhand_bbox_center_list = []
             lhand_bbox_valid_list = []
             lhand_bbox_size_list = []
@@ -742,21 +690,26 @@ class UBody_MM(HumanDataset):
             body_bbox_list = []
             # hand and face bbox transform
             
-
             for i in range(num_person):
-                lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
-                    data['lhand_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                rhand_bbox, rhand_bbox_valid = self.process_hand_face_bbox(
-                    data['rhand_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                face_bbox, face_bbox_valid = self.process_hand_face_bbox(
-                    data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)
-                
+                # TODO: check if body bbox is invalid, it will assert error?
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
+
+                lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
+                    data['lhand_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                lhand_bbox_valid *= smplx_param['lhand_valid'][i]
+                
+                rhand_bbox, rhand_bbox_valid = self.process_hand_face_bbox(
+                    data['rhand_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                rhand_bbox_valid *= smplx_param['rhand_valid'][i]
+                
+                face_bbox, face_bbox_valid = self.process_hand_face_bbox(
+                    data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
+                    cropped_img_shape)
+                face_bbox_valid *= smplx_param['face_valid'][i]
                 
                 if do_flip:
                     lhand_bbox, rhand_bbox = rhand_bbox, lhand_bbox
@@ -809,14 +762,12 @@ class UBody_MM(HumanDataset):
 
             inputs = {'img': img}
 
-            joint_img_aug[:,:,2] = joint_img_aug[:,:,2]*body_bbox_valid[:,None]
-            
             is_3D = True
-          
-            joint_cam_wo_ra[..., -1] = joint_img_aug[..., -1]
-            joint_cam_ra[..., -1] = joint_img_aug[..., -1]
-            joint_cam_ra[...,-1] = joint_cam_ra[...,-1] * smplx_joint_valid[...,0]
-            joint_cam_wo_ra[...,-1] = joint_cam_wo_ra[...,-1] * smplx_joint_valid[...,0]
+            # joint_img_aug[:,:,2] = joint_img_aug[:,:,2] * body_bbox_valid[:,None]
+            
+            # assign 2d kps valid to 3d kps
+            joint_cam_wo_ra[..., -1] = joint_img_aug[..., -1] * smplx_joint_valid[..., 0]
+            joint_cam_ra[..., -1] = joint_img_aug[..., -1] * smplx_joint_valid[..., 0]
             joint_img_aug[...,-1] = joint_img_aug[...,-1] * smplx_joint_valid[...,0]
             targets = {
                 # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
@@ -837,9 +788,9 @@ class UBody_MM(HumanDataset):
                 'body_bbox_center': body_bbox_center[body_bbox_valid>0], 
                 'body_bbox_size': body_bbox_size[body_bbox_valid>0],
                 'body_bbox': body_bbox.reshape(-1,4)[body_bbox_valid>0],
-                'lhand_bbox': body_bbox.reshape(-1,4)[body_bbox_valid>0],
-                'rhand_bbox': body_bbox.reshape(-1,4)[body_bbox_valid>0],
-                'face_bbox': body_bbox.reshape(-1,4)[body_bbox_valid>0],
+                'lhand_bbox': lhand_bbox.reshape(-1,4)[body_bbox_valid>0],
+                'rhand_bbox': rhand_bbox.reshape(-1,4)[body_bbox_valid>0],
+                'face_bbox': face_bbox.reshape(-1,4)[body_bbox_valid>0],
                 'gender': gender[body_bbox_valid>0]}
 
             meta_info = {
@@ -880,9 +831,7 @@ class UBody_MM(HumanDataset):
             else:
                 # dummy cord as joint_cam
                 dummy_cord = True
-                joint_cam = np.zeros(
-                    (num_person, 137, 4),
-                                     dtype=np.float32)
+                joint_cam = np.zeros((num_person, 137, 4), dtype=np.float32)
 
             joint_img = data['joint_img']
             
@@ -892,7 +841,7 @@ class UBody_MM(HumanDataset):
                     self.joint_set['flip_pairs'], img2bb_trans, rot,
                     self.joint_set['joints_name'], smpl_x.joints_name,
                     cropped_img_shape)
-            
+            joint_img_aug[:,:,2:] = joint_img_aug[:,:,2:] * joint_trunc
             
 
             # smplx coordinates and parameters
@@ -916,11 +865,12 @@ class UBody_MM(HumanDataset):
                     num_person, -1)
                 smplx_shape[(np.abs(smplx_shape) > 3).any(axis=1)] = 0.
                 smplx_shape = smplx_shape.reshape(num_person, -1)
-            smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
-            smplx_joint_valid = smplx_joint_valid[:, :, None]
-            smplx_pose = smplx_pose*smplx_pose_valid
-            smplx_expr = smplx_expr*smplx_expr_valid
             
+            # smplx_pose_valid = np.tile(smplx_pose_valid[:,:, None], (1, 3)).reshape(num_person,-1)
+            smplx_joint_valid = smplx_joint_valid[:, :, None]
+            # smplx_pose = smplx_pose*smplx_pose_valid
+            # smplx_expr = smplx_expr*smplx_expr_valid
+
             # if not (smplx_shape == 0).all():
             #     smplx_shape_valid = True
             # else:
@@ -946,16 +896,21 @@ class UBody_MM(HumanDataset):
                 lhand_bbox, lhand_bbox_valid = self.process_hand_face_bbox(
                     data['lhand_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
+                
                 rhand_bbox, rhand_bbox_valid = self.process_hand_face_bbox(
                     data['rhand_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
+                lhand_bbox_valid *= smplx_param['lhand_valid'][i]
+                
                 face_bbox, face_bbox_valid = self.process_hand_face_bbox(
                     data['face_bbox'][i], do_flip, img_shape, img2bb_trans,
                     cropped_img_shape)
+                rhand_bbox_valid *= smplx_param['rhand_valid'][i]
                 
                 body_bbox, body_bbox_valid = self.process_hand_face_bbox(
                     data['bbox'][i], do_flip, img_shape, img2bb_trans,
-                    cropped_img_shape)                
+                    cropped_img_shape)
+                face_bbox_valid *= smplx_param['face_valid'][i]                
 
                 if do_flip:
                     lhand_bbox, rhand_bbox = rhand_bbox, lhand_bbox
@@ -1005,8 +960,13 @@ class UBody_MM(HumanDataset):
             rhand_bbox_valid = np.stack(rhand_bbox_valid_list, axis=0)
             rhand_bbox_size = np.stack(rhand_bbox_size_list, axis=0)
                                             
-                            
             inputs = {'img': img}
+            joint_img_aug[:,:,2] = joint_img_aug[:,:,2] * body_bbox_valid[:,None]
+            
+            # assign 2d kps valid to 3d kps
+            joint_cam_wo_ra[..., -1] = joint_img_aug[..., -1] * smplx_joint_valid[..., 0]
+            joint_cam_ra[..., -1] = joint_img_aug[..., -1] * smplx_joint_valid[..., 0]
+            joint_img_aug[...,-1] = joint_img_aug[...,-1] * smplx_joint_valid[...,0]
             targets = {
                 # keypoints2d, [0,img_w],[0,img_h] -> [0,1] -> [0,output_hm_shape]
                 'joint_img': joint_img_aug, 
@@ -1028,9 +988,9 @@ class UBody_MM(HumanDataset):
                 'body_bbox_center': body_bbox_center, 
                 'body_bbox_size': body_bbox_size,
                 'body_bbox': body_bbox.reshape(-1,4),
-                'lhand_bbox': body_bbox.reshape(-1,4),
-                'rhand_bbox': body_bbox.reshape(-1,4),
-                'face_bbox': body_bbox.reshape(-1,4),
+                'lhand_bbox': lhand_bbox.reshape(-1,4),
+                'rhand_bbox': rhand_bbox.reshape(-1,4),
+                'face_bbox': face_bbox.reshape(-1,4),
                 'gender': gender,
                 'bb2img_trans': bb2img_trans,
             }

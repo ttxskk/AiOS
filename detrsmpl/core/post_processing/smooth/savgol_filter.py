@@ -59,10 +59,9 @@ class SGFilter:
         # smooth at different axis
         C = x.shape[-1]
         for i in range(C):
-            smooth_poses[..., i] = signal.savgol_filter(x[..., i],
-                                                        window_size,
-                                                        polyorder,
-                                                        axis=0)
+            smooth_poses[..., i] = signal.savgol_filter(
+                x[..., i], window_size, polyorder, axis=0)
+
 
         if isinstance(x_type, torch.Tensor):
             # we also return tensor by default

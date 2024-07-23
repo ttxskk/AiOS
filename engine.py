@@ -17,6 +17,7 @@ from detrsmpl.apis.test import collect_results_cpu, collect_results_gpu
 from detrsmpl.utils.ffmpeg_utils import images_to_video
 from torch.utils.tensorboard import SummaryWriter   
 import json
+from mmcv.runner import get_dist_info, init_dist
 
 def round_float(items):
     if isinstance(items, list):
@@ -64,24 +65,16 @@ def train_one_epoch(model: torch.nn.Module,
     print_freq = 10
 
     _cnt = 0
-    # import pdb
-    # pdb.set_trace()
-    # metric_logger.log_every(data_loader, print_freq, header, logger=logger)
-    
+
     for step_i, data_batch in enumerate(metric_logger.log_every(data_loader,
                                               print_freq,
                                               header,
                                               logger=logger)):
-        # for data_batch in data_loader:
-        
         with torch.cuda.amp.autocast(enabled=args.amp):
             if need_tgt_for_training:
-                # outputs = model(samples, targets)
                 outputs, targets, data_batch_nc = model(data_batch)
             else:
                 outputs, targets, data_batch_nc = model(data_batch)
-            
-            # torch.cuda.empty_cache() 
             
             ['hand_kp3d_4', 'face_kp3d_4', 'hand_kp2d_4',]
             loss_dict = criterion(outputs, targets, data_batch=data_batch_nc)
@@ -106,12 +99,7 @@ def train_one_epoch(model: torch.nn.Module,
         }
         losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
 
-        # loss_smpl_sum = sum(loss_smpl.values())
-
-        # loss_value_smpl = loss_smpl_sum.item()
-
         loss_value = losses_reduced_scaled.item()
-        # loss_value = loss_value+loss_value_smpl
         for k,v in weight_dict.items():
             for n in ['hand_kp3d_4', 'face_kp3d_4', 'hand_kp2d_4']:
                 if n in k:
@@ -143,16 +131,7 @@ def train_one_epoch(model: torch.nn.Module,
             if epoch >= args.ema_epoch:
                 ema_m.update(model)
         rank, _ = get_dist_info()
-
-        if rank == 0:
-            tf_writer.add_scalar(
-                'loss', round_float(loss_value), step_i + len(data_loader) * epoch)
-            for k, v in loss_dict_reduced_scaled.items():
-                tf_writer.add_scalar(
-                    k, round_float(v), step_i + len(data_loader) * epoch)
-            for k, v in loss_dict_reduced_unscaled.items():
-                tf_writer.add_scalar(
-                    k, round_float(v), step_i + len(data_loader) * epoch)
+        
         json_log = OrderedDict()
         json_log['now_time'] = str(datetime.datetime.now())
         json_log['epoch'] = epoch
@@ -313,8 +292,6 @@ def evaluate(model,
     # return results
 
 
-
-
 @torch.no_grad()
 def inference(model,
              criterion,
@@ -348,23 +325,10 @@ def inference(model,
     if not useCats:
         print('useCats: {} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'.format(
             useCats))
-
-    _cnt = 0
-    results = []
+        
     dataset = data_loader.dataset
     rank, world_size = get_dist_info()
-
-    if rank == 0:
-        # Check if tmpdir is valid for cpu_collect
-        if (not gpu_collect) and (tmpdir is not None and osp.exists(tmpdir)):
-            raise OSError((f'The tmpdir {tmpdir} already exists.',
-                           ' Since tmpdir will be deleted after testing,',
-                           ' please make sure you specify an empty one.'))
-        prog_bar = mmcv.ProgressBar(len(dataset))
     time.sleep(2)
-    # i=0
-    cur_sample_idx = 0
-    eval_result = {}
     for data_batch in metric_logger.log_every(
         data_loader, 10, header, logger=logger):
         # i = i+1
@@ -378,17 +342,12 @@ def inference(model,
         orig_target_sizes = torch.stack([t["size"] for t in targets], dim=0)
         result = postprocessors['bbox'](outputs, orig_target_sizes, targets, data_batch_nc)    
 
-        eval_out = dataset.inference(result)
-        eval_result.update(eval_out)
-    eval_result.update(eval_out)
-    # print('ssss',dataset.result_img_dir,dataset.out_path,dataset.img_name)
-    time.sleep(3)
+        dataset.inference(result)
+
     if rank == 0 and args.to_vid:
-        # img_tmp = dataset.img_path[0]
         if hasattr(dataset,'result_img_dir'):
-            import shutil
-            images_to_video(dataset.result_img_dir, os.path.join(dataset.output_path,dataset.img_name+'_demo.mp4'),remove_raw_file=False, fps=30)
-            shutil.rmtree(dataset.result_img_dir)
-            shutil.rmtree(dataset.tmp_dir)
+            images_to_video(dataset.result_img_dir, os.path.join(dataset.output_path, dataset.img_name+'_demo.mp4'),remove_raw_file=False, fps=30)
+            # shutil.rmtree(dataset.result_img_dir)
+            # shutil.rmtree(dataset.tmp_dir)
 
 

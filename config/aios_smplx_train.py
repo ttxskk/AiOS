@@ -1,5 +1,3 @@
-_base_ = ['coco_transformer.py']
-
 num_classes = 2
 lr = 0.0001*1.414/10
 param_dict_type = 'default'
@@ -211,8 +209,6 @@ continue_train = True
 pretrained_model_path = './data/checkpoint/edpose_r50_coco.pth'
 
 # dataset setting
-# dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA']
-# trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA']
 dataset_list = ['AGORA_MM','BEDLAM', 'COCO_NA', 'ARCTIC','UBody_MM','EgoBody_Egocentric']
 trainset_3d = ['AGORA_MM','BEDLAM', 'COCO_NA', 'ARCTIC','UBody_MM','EgoBody_Egocentric']
 trainset_2d = []
@@ -222,8 +218,7 @@ trainset_partition = {
             'COCO_NA': 0.6,
             'UBody_MM': 0.8,
             'EgoBody_Egocentric': 0.9,
-            'ARCTIC': 1,
-            # 'EgoBody_Kinect': 1.0,
+            'ARCTIC': 1
             }
 trainset_humandata = []
 testset = 'AGORA_MM'

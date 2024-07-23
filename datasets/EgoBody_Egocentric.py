@@ -21,16 +21,17 @@ class EgoBody_Egocentric(HumanDataset):
         super(EgoBody_Egocentric, self).__init__(transform, data_split)
 
         if self.data_split == 'train':
-            filename = 'data/preprocessed_npz_old/egobody_egocentric_train_cache_ds2_0211.npz'
-            self.annot_path_cache = 'data/preprocessed_npz_old/egobody_egocentric_test_230425_043_fix_betas.npz'
+            filename = 'data/preprocessed_npz/multihuman_data/egobody_egocentric_train_multi_080824.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/egobody_egocentric_train_cache_080824.npz'
+            self.sample_interval = 5
         else:
-            filename = 'data/multihuman_data/egobody_egocentric_test_230425_043_fix_betas.npz'
-            self.annot_path_cache = 'data/cache/egobody_egocentric_test_cache_0412.npz'
+            filename = 'data/preprocessed_npz/multihuman_data/egobody_egocentric_val_multi_080824.npz'
+            self.annot_path_cache = 'data/preprocessed_npz/cache/egobody_egocentric_val_cache_080824.npz'
+            self.sample_interval = 1
         self.use_betas_neutral = getattr(cfg, 'egobody_fix_betas', False)
 
         self.img_dir = 'data/osx_data/EgoBody'
         self.annot_path = filename
-        # self.annot_path_cache = 'data/preprocessed_npz/egobody_egocentric_test_230425_043_cache.npz'
         self.use_cache = getattr(cfg, 'use_cache', False)
         self.img_shape = (1080, 1920)  # (h, w)
         self.cam_param = {}
@@ -54,7 +55,7 @@ class EgoBody_Egocentric(HumanDataset):
                     f'[{self.__class__.__name__}] Cache not found, generating cache...'
                 )
             self.datalist = self.load_data(train_sample_interval=getattr(
-                cfg, f'{self.__class__.__name__}_train_sample_interval', 2))
+                cfg, f'{self.__class__.__name__}_train_sample_interval', self.sample_interval))
             if self.use_cache:
                 self.save_cache(self.annot_path_cache, self.datalist)
                 
@@ -155,9 +156,7 @@ class EgoBody_Egocentric(HumanDataset):
                 writer = csv.writer(file)
                 new_line = [ann_idx[n], img_path[n], eval_result['mpvpe_all'][-1], eval_result['pa_mpvpe_all'][-1]]
                 writer.writerow(new_line)
-                # self.save_idx += 1
             
-
         return eval_result
 
 

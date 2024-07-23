@@ -99,9 +99,24 @@ _HumanData_SUPPORTED_KEYS = {
         'shape': (-1, ),
         'dim': 0
     },
+    'keypoints2d_smplx_trunc_mask':{
+        'type': np.ndarray,
+        'shape': (-1, -1, 1),
+        'dim': 0
+    },
+    'keypoints2d_ubody_mask':{
+        'type': np.ndarray,
+        'shape':  (-1, ),
+        'dim': None
+    },
+    
     'misc': {
         'type': dict,
     },
+    # 'config': {
+    #     'type': dict,
+    # },
+
 }
 
 
@@ -1195,7 +1210,9 @@ class HumanData(dict):
                 continue
             # mask_0 and mask_1
             elif key.startswith('keypoints') and\
-                    key.endswith('_mask'):
+                    key.endswith('_mask') and \
+                    'smplx_trunc' not in key:
+
                 new_mask = value_0 * value_1
                 ret_human_data[key] = new_mask
                 continue

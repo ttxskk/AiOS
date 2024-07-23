@@ -3,27 +3,25 @@ import datetime
 import json
 import random
 import time
+import shutil
 from pathlib import Path
 import os, sys
-from util.get_param_dicts import get_param_dict
-from util.logger import setup_logger
+
 import numpy as np
 import torch
-
+import torchvision.transforms as transforms
 import util.misc as utils
 from detrsmpl.data.datasets import build_dataloader
 from mmcv.parallel import MMDistributedDataParallel
-# from detrsmpl.core.conventions.keypoints_mapping import
+
+from datasets.dataset import MultipleDatasets
 from engine import evaluate, train_one_epoch, inference
-# import models
+from util.get_param_dicts import get_param_dict
+from util.logger import setup_logger
 from util.config import DictAction, cfg
 from util.utils import ModelEma
-# sys.path.append('./osx/main')
-# from config import cfg
-import shutil
-import torchvision.transforms as transforms
-from torch.utils.tensorboard import SummaryWriter   
 
+import debugpy
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector',
                                      add_help=False)
@@ -34,8 +32,6 @@ def get_args_parser():
         action=DictAction,
         help='override some settings in the used config, the key-value pair '
         'in xxx=yyy format will be merged into config file.')
-    # parser.add_argument('--exp_name', default='data/log/smplx_test', type=str)
-    # dataset parameters
     
     # training parameters
     parser.add_argument('--output_dir',
@@ -65,7 +61,6 @@ def get_args_parser():
     parser.add_argument('--inference', action='store_true')
     # distributed training parameters
 
-
     parser.add_argument('--rank',
                         default=0,
                         type=int,
@@ -86,35 +81,23 @@ def build_model_main(args, cfg):
     from models.registry import MODULE_BUILD_FUNCS
     assert args.modelname in MODULE_BUILD_FUNCS._module_dict
     build_func = MODULE_BUILD_FUNCS.get(args.modelname)
-    model, criterion, postprocessors, postprocessors_aios = build_func(
+    model, criterion, postprocessors, _ = build_func(
         args, cfg)
-    return model, criterion, postprocessors, postprocessors_aios
+    return model, criterion, postprocessors, _
 
 
 def main(args):
     
-    utils.init_distributed_mode(args)
-    
-    # time.sleep(args.rank * 0.02)
-    # dist.barrier()
-    # debugpy.breakpoint()
+    utils.init_distributed_mode_ssc(args)
+    if args.rank == 0:
+        debugpy.listen(("0.0.0.0", 5681))
+        debugpy.wait_for_client()
     print('Loading config file from {}'.format(args.config_file))
-    
     shutil.copy2(args.config_file,'config/aios_smplx.py')
-    torch.distributed.barrier()
     from config.config import cfg
-    from datasets.dataset import MultipleDatasets
     
-    
-    # cfg.fromfile(args.config_file)
-    # cfg.get_config_fromfile(args.config_file)
-
- 
-    
-
     if args.options is not None:
         cfg.merge_from_dict(args.options)
-    
     if args.rank == 0:
         save_cfg_path = os.path.join(args.output_dir, 'config_cfg.py')
         cfg.dump(save_cfg_path)
@@ -145,9 +128,7 @@ def main(args):
                           name='detr')
     logger.info('git:\n  {}\n'.format(utils.get_sha()))
     logger.info('Command: ' + ' '.join(sys.argv))
-    writer = None
     if args.rank == 0:
-        writer = SummaryWriter(args.output_dir)
         save_json_path = os.path.join(args.output_dir, 'config_args_all.json')
         # print("args:", vars(args))
         with open(save_json_path, 'w') as f:
@@ -170,7 +151,7 @@ def main(args):
     random.seed(seed)
 
     # build model
-    model, criterion, postprocessors, postprocessors_aios = build_model_main(
+    model, criterion, postprocessors, _ = build_model_main(
         args, cfg)
 
     wo_class_error = False
@@ -184,7 +165,6 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-
         model = MMDistributedDataParallel(
             model,
             device_ids=[args.gpu],
@@ -198,19 +178,10 @@ def main(args):
          for n, p in model.named_parameters() if p.requires_grad},
         indent=2))
 
-    # for name, param in model.named_parameters():
-    #     if "smpl_cam_f_embed" not in name:
-    #         param.requires_grad = False
-
-
     param_dicts = get_param_dict(args, model_without_ddp)
-
     optimizer = torch.optim.AdamW(param_dicts,
                                   lr=args.lr,
                                   weight_decay=args.weight_decay)
-
-
-    
     logger.info('Creating dataset...')
     if not args.eval:
         trainset= []
@@ -224,17 +195,16 @@ def main(args):
         data_loader_train = build_dataloader(
             trainset_loader,
             args.batch_size,
-        0  if 'workers_per_gpu' in args else 2,
+        0  if 'workers_per_gpu' in args else 1,
             dist=args.distributed)
     exec('from datasets.' + cfg.testset +
             ' import ' + cfg.testset)
     
     
-    
     if not args.inference:
         dataset_val = eval(cfg.testset)(transforms.ToTensor(), "test")
     else:
-        dataset_val = eval(cfg.testset)(args.inference_input,args.output_dir)
+        dataset_val = eval(cfg.testset)(args.inference_input, args.output_dir)
         
     data_loader_val = build_dataloader(
     dataset_val,
@@ -243,13 +213,6 @@ def main(args):
     dist=args.distributed,
     shuffle=False)
         
-        
-    
-    
-    # import ipdb; ipdb.set_trace()
-
-   
-
     if args.onecyclelr:
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
@@ -262,9 +225,6 @@ def main(args):
             optimizer, milestones=args.lr_drop_list)
     else:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
-
-    
-
 
     if args.frozen_weights is not None:
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
@@ -308,17 +268,16 @@ def main(args):
                     return False
             return True
 
-        
         _tmp_st = OrderedDict({
             k: v
             for k, v in utils.clean_state_dict(checkpoint).items()
             if check_keep(k, _ignorekeywordlist)
         })
-        logger.info('Ignore keys: {}'.format(json.dumps(ignorelist, indent=2)))
-        # Change This
-        _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
-        print('loading')
-        logger.info(str(_load_output))
+        # logger.info('Ignore keys: {}'.format(json.dumps(ignorelist, indent=2)))
+        # # Change This
+        # _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
+        # print('loading')
+        # logger.info(str(_load_output))
 
         if args.use_ema:
             if 'ema_model' in checkpoint:
@@ -326,13 +285,12 @@ def main(args):
             else:
                 del ema_m
                 ema_m = ModelEma(model, args.ema_decay)    
-        _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
-        logger.info(str(_load_output))
+        model_without_ddp.load_state_dict(_tmp_st, strict=False)
+
 
 
     if args.eval:
         os.environ['EVAL_FLAG'] = 'TRUE'
-
         if args.inference_input is not None and args.inference:
             inference(model,
                      criterion,
@@ -343,7 +301,6 @@ def main(args):
                      wo_class_error=wo_class_error,
                      args=args)            
         else:
-            
             from config.config import cfg
             cfg.result_dir=args.output_dir
             cfg.exp_name=args.pretrain_model_path
@@ -375,8 +332,7 @@ def main(args):
             lr_scheduler=lr_scheduler,
             args=args,
             logger=(logger if args.save_log else None),
-            ema_m=ema_m,
-            tf_writer=writer)
+            ema_m=ema_m)
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
 
