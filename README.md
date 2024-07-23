@@ -1,62 +1,53 @@
-<style>
-  .publication-authors {
-    text-align: center;
-  }
-  .author-block {
-    display: inline-block;
-    margin-right: 5px;
-  }
-</style>
 <div align="center">
     <h2>
       AiOS: All-in-One-Stage Expressive Human Pose and Shape Estimation
     </h2>
 </div>
 <div class="is-size-5 publication-authors">
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://github.com/ttxskk" target="_blank">Qingping Sun</a><sup>1, 2</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://github.com/WYJSJTU" target="_blank">Yanjun Wang</a><sup>1</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://ailingzeng.site/" target="_blank">Ailing Zeng</a><sup>3</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://scholar.google.com/citations?view_op=list_works&hl=en&user=zlIJwBEAAAAJ" target="_blank">Wanqi Yin</a><sup>1</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://www.linkedin.com/in/chen-wei-weic0006/" target="_blank">Chen Wei</a><sup>1</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://wenjiawang0312.github.io/" target="_blank">Wenjia Wang</a><sup>5</sup>,&nbsp;
   </span>
   <br>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://haiyi-mei.com" target="_blank">Haiyi Mei</a><sup>1</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://ttxskk.github.io/AiOS/" target="_blank">Chi Sing Leung</a><sup>2</sup>,&nbsp;
-    <span class="author-block">
+    <span class="display: inline-block">
       <a href="https://liuziwei7.github.io/" target="_blank">Ziwei Liu</a><sup>4</sup>,&nbsp;
     </span>
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://yanglei.me/" target="_blank">Lei Yang</a><sup>1, 5</sup>,&nbsp;
   </span>
-  <span class="author-block">
+  <span class="display: inline-block">
     <a href="https://caizhongang.github.io/" target="_blank">Zhongang Cai</a><sup>✉, 1, 4, 5</sup>,&nbsp;
   </span>
 </div>
 <br>
-<div class="is-size-5 publication-authors">
-  <span class="author-block"><sup>1</sup>SenseTime Research</span>,
-  <span class="author-block"><sup>2</sup>City University of Hong Kong</span>,
+<div class="is-size-5 text-align: center">
+  <span class="display: inline-block"><sup>1</sup>SenseTime Research</span>,
+  <span class="display: inline-block"><sup>2</sup>City University of Hong Kong</span>,
   <br>
-  <span class="author-block"><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
+  <span class="display: inline-block"><sup>3</sup>International Digital Economy Academy (IDEA)</span>,
   <br>
-  <span class="author-block"><sup>4</sup>S-Lab, Nanyang Technological University</span>,
-  <span class="author-block"><sup>5</sup>Shanghai AI Laboratory</span>
+  <span class="display: inline-block"><sup>4</sup>S-Lab, Nanyang Technological University</span>,
+  <span class="display: inline-block"><sup>5</sup>Shanghai AI Laboratory</span>
 </div>
 <br>
 <div align="center">
