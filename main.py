@@ -87,11 +87,7 @@ def build_model_main(args, cfg):
 
 
 def main(args):
-    
     utils.init_distributed_mode_ssc(args)
-    if args.rank == 0:
-        debugpy.listen(("0.0.0.0", 5681))
-        debugpy.wait_for_client()
     print('Loading config file from {}'.format(args.config_file))
     shutil.copy2(args.config_file,'config/aios_smplx.py')
     from config.config import cfg
